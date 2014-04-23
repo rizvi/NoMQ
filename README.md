@@ -14,6 +14,15 @@ NoMQ noMq = new NoMQ.Builder().build();
 // Start it
 noMq.start();
 
+// Publish a message
 noMq.publisher().publish("Some payload".getBytes());
 ```
+
+To register a simple event subscriber:
+
+```java
+// Initialize NoMQ
+NoMQ noMq = new NoMQ.Builder().eventSubscribers(e -> System.out.println(e.id())).build();
+```
+
 

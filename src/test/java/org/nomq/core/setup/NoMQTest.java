@@ -33,6 +33,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static org.junit.Assert.assertEquals;
 
 /**
+ * Test case for the setup classes.
+ *
  * @author Tommy Wassgren
  */
 public class NoMQTest {
@@ -64,7 +66,7 @@ public class NoMQTest {
         noMQ.publisher().publish("Simple event".getBytes());
 
         // Wait for the message to be delivered
-        Thread.sleep(200);
+        Thread.sleep(500);
 
         // Then
         assertEquals(1, result.size());

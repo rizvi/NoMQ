@@ -69,7 +69,7 @@ public class EventPublisherTest {
         publishTwoEvents(topic, publishHazelcastInstance);
 
         // Wait for a while, allow for the player to process the events
-        Thread.sleep(200);
+        Thread.sleep(500);
 
         // Wait for the player to stop properly
         player.stop();
@@ -84,7 +84,7 @@ public class EventPublisherTest {
         publishTwoEvents(topic, publishHazelcastInstance);
 
         // Wait for the recorder to finish
-        Thread.sleep(200);
+        Thread.sleep(500);
 
         // Then, reset the local queue. This means that when the player starts, no elements will be on the queue but the
         // recording and player event stores will be out of sync.
@@ -129,7 +129,7 @@ public class EventPublisherTest {
         eventPublisher.publish(create("payload2"));
 
         // Wait a while to allow for the player to process the events
-        Thread.sleep(200);
+        Thread.sleep(500);
 
         // Assertions
         assertEquals(2, result.size());
