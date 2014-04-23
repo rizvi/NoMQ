@@ -1,8 +1,9 @@
-package org.nomq.core.persistence;
+package org.nomq.core.process;
 
 import org.junit.Test;
 import org.nomq.core.Event;
-import org.nomq.core.transport.SerializableEvent;
+import org.nomq.core.process.JournalEventStore;
+import org.nomq.core.process.SerializableEvent;
 
 import java.io.IOException;
 import java.nio.file.Files;

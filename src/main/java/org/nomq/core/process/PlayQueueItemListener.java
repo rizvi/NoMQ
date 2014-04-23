@@ -1,9 +1,10 @@
-package org.nomq.core.transport;
+package org.nomq.core.process;
 
 import com.hazelcast.core.ItemEvent;
 import com.hazelcast.core.ItemListener;
 import org.nomq.core.Event;
-import org.nomq.core.persistence.EventStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -17,6 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 class PlayQueueItemListener implements ItemListener<Event> {
     private final Lock lock;
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final BlockingQueue<Event> playQueue;
     private final EventStore recordEventStore;
     private boolean started = false;
@@ -45,6 +47,7 @@ class PlayQueueItemListener implements ItemListener<Event> {
         lock.lock();
         try {
             if (started) {
+                log.debug("Recording event [id={}]", event.getItem().id());
                 recordEventStore.append(event.getItem());
                 playQueue.add(event.getItem());
             } else {

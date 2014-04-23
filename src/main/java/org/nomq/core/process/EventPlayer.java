@@ -1,10 +1,9 @@
-package org.nomq.core.transport;
+package org.nomq.core.process;
 
 import org.nomq.core.Event;
 import org.nomq.core.EventSubscriber;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
-import org.nomq.core.persistence.EventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

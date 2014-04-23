@@ -1,4 +1,4 @@
-package org.nomq.core.persistence;
+package org.nomq.core.process;
 
 import journal.io.api.Journal;
 import journal.io.api.JournalBuilder;

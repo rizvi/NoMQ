@@ -1,4 +1,4 @@
-package org.nomq.core.transport;
+package org.nomq.core.process;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
@@ -6,8 +6,11 @@ import com.hazelcast.core.HazelcastInstance;
 import org.junit.Test;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
-import org.nomq.core.persistence.EventStore;
-import org.nomq.core.persistence.JournalEventStore;
+import org.nomq.core.process.EventStore;
+import org.nomq.core.process.JournalEventStore;
+import org.nomq.core.process.EventPlayer;
+import org.nomq.core.process.EventRecorder;
+import org.nomq.core.process.HazelcastEventPublisher;
 
 import java.io.IOException;
 import java.nio.file.Files;

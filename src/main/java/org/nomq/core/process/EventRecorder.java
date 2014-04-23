@@ -1,11 +1,10 @@
-package org.nomq.core.transport;
+package org.nomq.core.process;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IList;
 import org.nomq.core.Event;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
-import org.nomq.core.persistence.EventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +74,7 @@ public class EventRecorder implements Startable, Stoppable {
         final Set<String> processedKeys = new HashSet<>();
         coll.forEach(event -> {
             if (status.shouldProcess(event.id())) {
+                log.debug("Recording event [id={}] - catchup", event.id());
                 processedKeys.add(event.id());
                 recordEventStore.append(event);
                 playQueue.add(event);

@@ -1,4 +1,4 @@
-package org.nomq.core.transport;
+package org.nomq.core.process;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IList;
@@ -23,7 +23,7 @@ public class HazelcastEventPublisher implements EventPublisher {
     @Override
     public void publish(final byte[] payload) {
         final Event event = create(payload);
-        log.debug("Publish [id={}]", event.id());
+        log.debug("Publish event [id={}]", event.id());
         final IList<Event> q = hazelcastInstance.getList(topic);
         q.add(event);
     }
