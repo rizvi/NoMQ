@@ -1,8 +1,11 @@
-package org.nomq.core;
+package org.nomq.core.setup;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.nomq.core.Event;
+import org.nomq.core.EventPublisher;
+import org.nomq.core.EventSubscriber;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 import org.nomq.core.process.EventPlayer;

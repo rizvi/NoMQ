@@ -1,8 +1,8 @@
-package org.nomq.core.process;
+package org.nomq.core.setup;
 
 import org.junit.Test;
 import org.nomq.core.Event;
-import org.nomq.core.NoMQ;
+import org.nomq.core.setup.NoMQ;
 
 import java.io.IOException;
 import java.nio.file.Files;
