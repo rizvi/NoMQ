@@ -1,3 +1,19 @@
+/*
+ * Copyright 2014 the original author or authors.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.nomq.core.process;
 
 import com.hazelcast.config.Config;
@@ -6,11 +22,8 @@ import com.hazelcast.core.HazelcastInstance;
 import org.junit.Test;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
-import org.nomq.core.process.EventStore;
-import org.nomq.core.process.JournalEventStore;
-import org.nomq.core.process.EventPlayer;
-import org.nomq.core.process.EventRecorder;
-import org.nomq.core.process.HazelcastEventPublisher;
+import org.nomq.core.EventStore;
+import org.nomq.core.EventSubscriber;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -100,7 +113,7 @@ public class EventPublisherTest {
         // Wire the recorder and player
         final List<Event> result = new ArrayList<>();
         final EventRecorder recorder = new EventRecorder(playQueue, topic, newHazelcastInstance(), recordEventStore);
-        final EventPlayer player = new EventPlayer(playQueue, playEventStore, recordEventStore, Executors.newFixedThreadPool(2), array(event -> result.add(event)));
+        final EventPlayer player = new EventPlayer(playQueue, playEventStore, recordEventStore, Executors.newFixedThreadPool(2), array((EventSubscriber) result::add));
 
         // First, start the player
         player.start();
@@ -108,7 +121,7 @@ public class EventPublisherTest {
         // Then, start the recorder
         recorder.start();
 
-        final EventPublisher eventPublisher = new HazelcastEventPublisher(topic, newHazelcastInstance());
+        final EventPublisher eventPublisher = new NoMQEventPublisher(topic, newHazelcastInstance());
         eventPublisher.publish(create("payload1"));
         eventPublisher.publish(create("payload2"));
 
@@ -141,7 +154,7 @@ public class EventPublisherTest {
 
     private void publishTwoEvents(final String topic, final HazelcastInstance hazelcastInstance) throws InterruptedException {
         // Publish some messages
-        final EventPublisher eventPublisher = new HazelcastEventPublisher(topic, hazelcastInstance);
+        final EventPublisher eventPublisher = new NoMQEventPublisher(topic, hazelcastInstance);
         long seqNo = System.currentTimeMillis();
         eventPublisher.publish(create(Long.toString(++seqNo)));
         eventPublisher.publish(create(Long.toString(++seqNo)));

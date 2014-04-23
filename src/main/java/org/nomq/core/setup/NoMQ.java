@@ -1,3 +1,20 @@
+
+/*
+ * Copyright 2014 the original author or authors.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.nomq.core.setup;
 
 import com.hazelcast.config.Config;
@@ -5,14 +22,14 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
+import org.nomq.core.EventStore;
 import org.nomq.core.EventSubscriber;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 import org.nomq.core.process.EventPlayer;
 import org.nomq.core.process.EventRecorder;
-import org.nomq.core.process.EventStore;
-import org.nomq.core.process.HazelcastEventPublisher;
 import org.nomq.core.process.JournalEventStore;
+import org.nomq.core.process.NoMQEventPublisher;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -54,7 +71,7 @@ public class NoMQ implements Startable, Stoppable {
                     recordEventStore,
                     new EventRecorder(playQueue, topic, hz, recordEventStore),
                     new EventPlayer(playQueue, playEventStore, recordEventStore, executorService, eventSubscribers),
-                    new HazelcastEventPublisher(topic, hz)
+                    new NoMQEventPublisher(topic, hz)
             );
         }
 
@@ -114,21 +131,21 @@ public class NoMQ implements Startable, Stoppable {
             return this;
         }
 
-        protected EventSubscriber[] eventSubscribers() {
+        private EventSubscriber[] eventSubscribers() {
             if (eventSubscribers == null) {
                 eventSubscribers = new EventSubscriber[0];
             }
             return eventSubscribers;
         }
 
-        protected ExecutorService executorService() {
+        private ExecutorService executorService() {
             if (executorService == null) {
                 executorService = Executors.newFixedThreadPool(2);
             }
             return executorService;
         }
 
-        protected EventStore play() {
+        private EventStore play() {
             if (playEventStore == null) {
                 verifyFolder(DEFAULT_PLAY_FOLDER);
                 playEventStore = new JournalEventStore(DEFAULT_PLAY_FOLDER);
@@ -137,14 +154,14 @@ public class NoMQ implements Startable, Stoppable {
             return playEventStore;
         }
 
-        protected BlockingQueue<Event> playQueue() {
+        private BlockingQueue<Event> playQueue() {
             if (playQueue == null) {
                 playQueue = new LinkedBlockingQueue<>();
             }
             return playQueue;
         }
 
-        protected EventStore record() {
+        private EventStore record() {
             if (recordEventStore == null) {
                 verifyFolder(DEFAULT_RECORD_FOLDER);
                 recordEventStore = new JournalEventStore(DEFAULT_RECORD_FOLDER);
@@ -152,13 +169,14 @@ public class NoMQ implements Startable, Stoppable {
             return recordEventStore;
         }
 
-        protected String topic() {
+        private String topic() {
             if (topic == null) {
                 topic = DEFAULT_TOPIC;
             }
             return topic;
         }
 
+        @SuppressWarnings("ResultOfMethodCallIgnored")
         private void verifyFolder(final String folder) {
             final File f = new File(folder);
             f.mkdirs();
