@@ -32,6 +32,8 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * This item listener feeds the play queue with all the new entries that are added to the list. During initialization, all
  * events are stored in a temp queue so that the catchup-phase can be executed first.
+ *
+ * @author Tommy Wassgren
  */
 class PlayQueueItemListener implements ItemListener<Event> {
     private final Lock lock;

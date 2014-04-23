@@ -16,6 +16,11 @@
 
 package org.nomq.core.lifecycle;
 
+/**
+ * Lifecycle interface for stoppable components.
+ *
+ * @author Tommy Wassgren
+ */
 public interface Stoppable {
     void stop();
 }

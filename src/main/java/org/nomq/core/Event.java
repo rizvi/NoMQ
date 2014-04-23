@@ -18,6 +18,8 @@ package org.nomq.core;
 
 /**
  * Events can be published by event publishers and received by event subscribers.
+ *
+ * @author Tommy Wassgren
  */
 public interface Event {
     /**

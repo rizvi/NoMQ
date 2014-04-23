@@ -22,6 +22,8 @@ import java.util.stream.Stream;
 /**
  * An event store is responsible for storing events in the order they are appended and later be able to replay the events that
  * occurred. The event store is similar to an append-only journal.
+ *
+ * @author Tommy Wassgren
  */
 public interface EventStore {
     /**

@@ -33,6 +33,8 @@ import java.util.concurrent.BlockingQueue;
 /**
  * The event recorder stores all incoming events in the event store and notifies the shared in-memory queue. This is the "store"
  * step of the store-and-forward pattern used when receiving events.
+ *
+ * @author Tommy Wassgren
  */
 public class EventRecorder implements Startable, Stoppable {
     private final HazelcastInstance hazelcastInstance;

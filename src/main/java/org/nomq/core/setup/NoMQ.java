@@ -39,6 +39,30 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * Setup of the NoMQ-system is done via this class. The builder design pattern is used and all the relevant settings can be
+ * changed/overridden.
+ *
+ * To create a zeroconf-version of NoMQ and publish a message the following code can be used:
+ * <pre>
+ *     // Initialize NoMQ
+ *     NoMQ noMq = new NoMQ.Builder().build();
+ *
+ *     // Start it
+ *     noMq.start();
+ *
+ *     // Publish a message
+ *     noMq.publisher().publish("a message".getBytes());
+ * </pre>
+ *
+ * The following demonstrates how to register a simple subscriber:
+ * <pre>
+ *     // Initialize NoMQ with an event subscriber
+ *     NoMQ noMq = new NoMQ.Builder().eventSubscribers(e -> System.out.println(e.id())).build();
+ * </pre>
+ *
+ * @author Tommy Wassgren
+ */
 public class NoMQ implements Startable, Stoppable {
     public static class Builder {
         public static final String DEFAULT_RECORD_FOLDER = System.getProperty("user.home") + "/.nomq/record";

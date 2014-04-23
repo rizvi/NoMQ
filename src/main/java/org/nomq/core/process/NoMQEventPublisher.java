@@ -25,6 +25,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
+/**
+ * The event publisher that simply adds messages to the Hazelcast queue.
+ *
+ * @author Tommy Wassgren
+ */
 public class NoMQEventPublisher implements EventPublisher {
     private final HazelcastInstance hazelcastInstance;
     private final Logger log = LoggerFactory.getLogger(getClass());

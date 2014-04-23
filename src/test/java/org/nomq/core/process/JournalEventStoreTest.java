@@ -34,6 +34,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * @author Tommy Wassgren
+ */
 public class JournalEventStoreTest {
     @Test
     public void appendCloseAndAppend() throws IOException {

@@ -16,6 +16,11 @@
 
 package org.nomq.core.lifecycle;
 
+/**
+ * Lifecycle interface for startable components.
+ *
+ * @author Tommy Wassgren
+ */
 public interface Startable {
     void start();
 }

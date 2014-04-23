@@ -17,7 +17,9 @@
 package org.nomq.core;
 
 /**
- * Publish events to the NoMQ-system. A reference to the EventPublisher can be obtained from the setup.
+ * Publish events to the NoMQ-system. A reference to the EventPublisher can be obtained from the setup (NoMQ.publisher()).
+ *
+ * @author Tommy Wassgren
  */
 @FunctionalInterface
 public interface EventPublisher {

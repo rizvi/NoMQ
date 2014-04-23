@@ -42,6 +42,8 @@ import java.util.stream.StreamSupport;
 
 /**
  * The journal event store uses <a href="https://github.com/sbtourist/Journal.IO/">Journal.IO</a> for persistent storage.
+ *
+ * @author Tommy Wassgren
  */
 public class JournalEventStore implements EventStore, Stoppable {
     private final Journal journal;

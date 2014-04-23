@@ -18,6 +18,8 @@ package org.nomq.core;
 
 /**
  * Implement this interface to receive events from the NoMQ-system. The subscriber must be registered during setup.
+ *
+ * @author Tommy Wassgren
  */
 @FunctionalInterface
 public interface EventSubscriber {

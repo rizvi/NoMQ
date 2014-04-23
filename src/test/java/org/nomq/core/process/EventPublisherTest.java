@@ -37,6 +37,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+/**
+ * @author Tommy Wassgren
+ */
 public class EventPublisherTest {
     @SafeVarargs
     private static <T> T[] array(final T... elements) {

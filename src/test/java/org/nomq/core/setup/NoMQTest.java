@@ -32,6 +32,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * @author Tommy Wassgren
+ */
 public class NoMQTest {
     @Test
     public void testAdvancedSetup() throws InterruptedException, IOException {

@@ -33,6 +33,8 @@ import java.util.stream.Stream;
 /**
  * The event player sends events to the application - this is the "forward" step of the store-and-forward pattern used when
  * receiving events.
+ *
+ * @author Tommy Wassgren
  */
 public class EventPlayer implements Startable, Stoppable {
     private final EventSubscriber[] eventSubscribers;

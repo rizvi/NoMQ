@@ -20,6 +20,9 @@ import org.nomq.core.Event;
 
 import java.io.Serializable;
 
+/**
+ * @author Tommy Wassgren
+ */
 class SerializableEvent implements Event, Serializable {
     private static final long serialVersionUID = 1L;
     private static final byte[] EMPTY = new byte[0];
