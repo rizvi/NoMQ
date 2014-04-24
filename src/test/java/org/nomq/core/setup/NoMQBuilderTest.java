@@ -19,7 +19,7 @@ package org.nomq.core.setup;
 import com.hazelcast.core.Hazelcast;
 import org.junit.Test;
 import org.nomq.core.Event;
-import org.nomq.core.NoMQI;
+import org.nomq.core.NoMQ;
 import org.nomq.core.process.JournalEventStore;
 
 import java.io.IOException;
@@ -51,7 +51,7 @@ public class NoMQBuilderTest {
         final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
         final List<Event> result = new ArrayList<>();
-        final NoMQI noMQ = NoMQBuilder.builder()
+        final NoMQ noMQ = NoMQBuilder.builder()
                 .playback(playbackEventStore)
                 .record(recordEventStore)
                 .playbackQueue(new LinkedBlockingQueue<>())
@@ -83,7 +83,7 @@ public class NoMQBuilderTest {
         final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
 
         final List<Event> result = new ArrayList<>();
-        final NoMQI noMQ = NoMQBuilder.builder()
+        final NoMQ noMQ = NoMQBuilder.builder()
                 .playback(playbackFolder.toString())
                 .record(recordFolder.toString())
                 .subscribe(result::add)
@@ -112,7 +112,7 @@ public class NoMQBuilderTest {
 
         final List<Event> result1 = new ArrayList<>();
         final List<Event> result2 = new ArrayList<>();
-        final NoMQI noMQ = NoMQBuilder.builder()
+        final NoMQ noMQ = NoMQBuilder.builder()
                 .playback(playbackFolder.toString())
                 .record(recordFolder.toString())
                 .subscribe(result1::add)

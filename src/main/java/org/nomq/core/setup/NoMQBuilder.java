@@ -24,7 +24,7 @@ import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
 import org.nomq.core.EventStore;
 import org.nomq.core.EventSubscriber;
-import org.nomq.core.NoMQI;
+import org.nomq.core.NoMQ;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 import org.nomq.core.process.EventPlayer;
@@ -88,7 +88,7 @@ public final class NoMQBuilder {
     /**
      * The internal implementation of the NoMQ-system.
      */
-    private static class NoMQSystem implements NoMQI {
+    private static class NoMQSystem implements NoMQ {
         private final HazelcastInstance hz;
         private final EventStore playbackEventStore;
         private final EventPlayer player;
@@ -118,7 +118,7 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public NoMQI start() {
+        public NoMQ start() {
             start(playbackEventStore);
             start(recordEventStore);
             start(player);
@@ -183,7 +183,7 @@ public final class NoMQBuilder {
      * @see #playbackQueue(java.util.concurrent.BlockingQueue)
      * @see #executorService(java.util.concurrent.ExecutorService)
      */
-    public NoMQI build() {
+    public NoMQ build() {
         final BlockingQueue<Event> playbackQueue = playbackQueue();
         final EventStore playbackEventStore = playback();
         final EventStore recordEventStore = record();
