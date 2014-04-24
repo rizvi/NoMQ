@@ -26,9 +26,8 @@ public interface EventSubscriber {
 }
 ```
 
-The following snippet shows how to do the default configuration of the NoMQ-instance.
+The following snippet shows how to setup the NoMQ-instance with the default settings.
 ```java
-// Initialize and start NoMQ
 NoMQ noMQ = NoMQBuilder.builder()
     .build()  // Build the NoMQ-instance
     .start(); // Start it
