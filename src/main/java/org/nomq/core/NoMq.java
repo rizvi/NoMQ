@@ -16,15 +16,9 @@
 
 package org.nomq.core;
 
-/**
- * Implement this interface to receive events from the NoMQBuilder-system. The subscriber must be registered during setup.
- *
- * @author Tommy Wassgren
- */
-@FunctionalInterface
-public interface EventSubscriber {
-    /**
-     * Invoked when an event is dispatched to the application.
-     */
-    void onEvent(Event event);
+import org.nomq.core.lifecycle.Startable;
+import org.nomq.core.lifecycle.Stoppable;
+
+public interface NoMQ extends Startable<NoMQ>, Stoppable, EventPublisher {
+    // No additional methods defined
 }

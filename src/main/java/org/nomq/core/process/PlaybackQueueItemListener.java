@@ -30,31 +30,31 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * This item listener feeds the play queue with all the new entries that are added to the list. During initialization, all
+ * This item listener feeds the playback queue with all the new entries that are added to the list. During initialization, all
  * events are stored in a temp queue so that the catchup-phase can be executed first.
  *
  * @author Tommy Wassgren
  */
-class PlayQueueItemListener implements ItemListener<Event> {
+class PlaybackQueueItemListener implements ItemListener<Event> {
     private final Lock lock;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final BlockingQueue<Event> playQueue;
+    private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
     private boolean started = false;
-    private final BlockingQueue<Event> tempPlayQueue;
+    private final BlockingQueue<Event> tempPlaybackQueue;
 
-    PlayQueueItemListener(final EventStore recordEventStore, final BlockingQueue<Event> playQueue) {
+    PlaybackQueueItemListener(final EventStore recordEventStore, final BlockingQueue<Event> playbackQueue) {
         this.recordEventStore = recordEventStore;
-        this.playQueue = playQueue;
-        tempPlayQueue = new LinkedBlockingQueue<>();
+        this.playbackQueue = playbackQueue;
+        tempPlaybackQueue = new LinkedBlockingQueue<>();
         lock = new ReentrantLock();
     }
 
     public void catchup(final Set<String> processedIds) {
         lock.lock();
         try {
-            removeAlreadyProcessedIds(processedIds, tempPlayQueue);
-            tempPlayQueue.drainTo(playQueue);
+            removeAlreadyProcessedIds(processedIds, tempPlaybackQueue);
+            tempPlaybackQueue.drainTo(playbackQueue);
             started = true;
         } finally {
             lock.unlock();
@@ -68,9 +68,9 @@ class PlayQueueItemListener implements ItemListener<Event> {
             if (started) {
                 log.debug("Recording event [id={}]", event.getItem().id());
                 recordEventStore.append(event.getItem());
-                playQueue.add(event.getItem());
+                playbackQueue.add(event.getItem());
             } else {
-                tempPlayQueue.add(event.getItem());
+                tempPlaybackQueue.add(event.getItem());
             }
         } finally {
             lock.unlock();

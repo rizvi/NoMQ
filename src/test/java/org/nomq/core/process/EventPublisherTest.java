@@ -51,17 +51,17 @@ public class EventPublisherTest {
         final HazelcastInstance publishHazelcastInstance = newHazelcastInstance();
         // Create the event stores
         final EventStore recordEventStore = newEventStore();
-        final EventStore playEventStore = newEventStore();
+        final EventStore playbackEventStore = newEventStore();
 
         // Create the shared queue
-        final BlockingQueue<Event> playQueue = new LinkedBlockingQueue<>();
+        final BlockingQueue<Event> playbackQueue = new LinkedBlockingQueue<>();
 
         // Setup the topic
         final String topic = "test" + System.currentTimeMillis();
 
         // Create the player and recorder, then start them
-        final EventPlayer player = new EventPlayer(playQueue, playEventStore, recordEventStore, Executors.newFixedThreadPool(2));
-        final EventRecorder recorder = new EventRecorder(playQueue, topic, newHazelcastInstance(), recordEventStore);
+        final EventPlayer player = new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, Executors.newFixedThreadPool(2));
+        final EventRecorder recorder = new EventRecorder(playbackQueue, topic, newHazelcastInstance(), recordEventStore);
         player.start(); // Player should always be started before the recorder
         recorder.start();
 
@@ -76,10 +76,10 @@ public class EventPublisherTest {
         Thread.sleep(600);
 
         // Verify the results
-        assertEquals(2L, playEventStore.replayAll().count());
+        assertEquals(2L, playbackEventStore.replayAll().count());
 
 
-        // So, now there are some entries in the play event store. Lets fill the recording store and create new components. This
+        // So, now there are some entries in the playback event store. Lets fill the recording store and create new components. This
         // way the catchup functionality is tested.
         publishTwoEvents(topic, publishHazelcastInstance);
 
@@ -88,7 +88,7 @@ public class EventPublisherTest {
 
         // Then, reset the local queue. This means that when the player starts, no elements will be on the queue but the
         // recording and player event stores will be out of sync.
-        playQueue.clear();
+        playbackQueue.clear();
 
         // Finally, start the player again and do the catchup
         player.start();
@@ -97,7 +97,7 @@ public class EventPublisherTest {
         Thread.sleep(200);
 
         // Verify the results
-        assertEquals(4L, playEventStore.replayAll().count());
+        assertEquals(4L, playbackEventStore.replayAll().count());
     }
 
     @Test
@@ -108,15 +108,15 @@ public class EventPublisherTest {
 
         // Create the event stores
         final EventStore recordEventStore = newEventStore();
-        final EventStore playEventStore = newEventStore();
+        final EventStore playbackEventStore = newEventStore();
 
         // Create the shared queue
-        final BlockingQueue<Event> playQueue = new LinkedBlockingQueue<>();
+        final BlockingQueue<Event> playbackQueue = new LinkedBlockingQueue<>();
 
         // Wire the recorder and player
         final List<Event> result = new ArrayList<>();
-        final EventRecorder recorder = new EventRecorder(playQueue, topic, newHazelcastInstance(), recordEventStore);
-        final EventPlayer player = new EventPlayer(playQueue, playEventStore, recordEventStore, Executors.newFixedThreadPool(2), array((EventSubscriber) result::add));
+        final EventRecorder recorder = new EventRecorder(playbackQueue, topic, newHazelcastInstance(), recordEventStore);
+        final EventPlayer player = new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, Executors.newFixedThreadPool(2), array((EventSubscriber) result::add));
 
         // First, start the player
         player.start();

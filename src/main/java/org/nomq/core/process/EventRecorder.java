@@ -36,29 +36,30 @@ import java.util.concurrent.BlockingQueue;
  *
  * @author Tommy Wassgren
  */
-public class EventRecorder implements Startable, Stoppable {
+public class EventRecorder implements Startable<EventRecorder>, Stoppable {
     private final HazelcastInstance hazelcastInstance;
     private String listenerId;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final BlockingQueue<Event> playQueue;
+    private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
     private final String topic;
 
     public EventRecorder(
-            final BlockingQueue<Event> playQueue,
+            final BlockingQueue<Event> playbackQueue,
             final String topic,
             final HazelcastInstance hazelcastInstance,
             final EventStore recordEventStore) {
 
-        this.playQueue = playQueue;
+        this.playbackQueue = playbackQueue;
         this.topic = topic;
         this.hazelcastInstance = hazelcastInstance;
         this.recordEventStore = recordEventStore;
     }
 
     @Override
-    public void start() {
+    public EventRecorder start() {
         catchup();
+        return this;
     }
 
     @Override
@@ -69,14 +70,14 @@ public class EventRecorder implements Startable, Stoppable {
 
     /**
      * Catches up from the remote collection. Retrieves all elements from the remote collection (based on the "latest" entry in
-     * the recorded event store) and adds them to the event store (and local play queue).
+     * the recorded event store) and adds them to the event store (and local playback queue).
      */
     private void catchup() {
         final IList<Event> coll = hazelcastInstance.getList(topic);
 
-        // Start listening to messages and store them in the play queue. Before the queue has caught up the events are stored in
-        // a temp play queue.
-        final PlayQueueItemListener itemListener = new PlayQueueItemListener(recordEventStore, playQueue);
+        // Start listening to messages and store them in the playback queue. Before the queue has caught up the events are stored in
+        // a temp playback queue.
+        final PlaybackQueueItemListener itemListener = new PlaybackQueueItemListener(recordEventStore, playbackQueue);
         listenerId = coll.addItemListener(itemListener, true);
 
         // Do the actual catchup from the remote queue
@@ -96,7 +97,7 @@ public class EventRecorder implements Startable, Stoppable {
                 log.debug("Recording event [id={}] - catchup", event.id());
                 processedKeys.add(event.id());
                 recordEventStore.append(event);
-                playQueue.add(event);
+                playbackQueue.add(event);
             }
         });
 

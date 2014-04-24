@@ -36,33 +36,34 @@ import java.util.stream.Stream;
  *
  * @author Tommy Wassgren
  */
-public class EventPlayer implements Startable, Stoppable {
+public class EventPlayer implements Startable<EventPlayer>, Stoppable {
     private final EventSubscriber[] eventSubscribers;
     private final ExecutorService executorService;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final EventStore playEventStore;
-    private final BlockingQueue<Event> playQueue;
+    private final EventStore playbackEventStore;
+    private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
     private boolean stopped = false;
 
     public EventPlayer(
-            final BlockingQueue<Event> playQueue,
-            final EventStore playEventStore,
+            final BlockingQueue<Event> playbackQueue,
+            final EventStore playbackEventStore,
             final EventStore recordEventStore,
             final ExecutorService executorService,
             final EventSubscriber... eventSubscribers) {
-        this.playQueue = playQueue;
-        this.playEventStore = playEventStore;
+        this.playbackQueue = playbackQueue;
+        this.playbackEventStore = playbackEventStore;
         this.recordEventStore = recordEventStore;
         this.executorService = executorService;
         this.eventSubscribers = eventSubscribers == null ? new EventSubscriber[0] : eventSubscribers;
     }
 
     @Override
-    public void start() {
+    public EventPlayer start() {
         catchup();
         stopped = false;
         startPlaying();
+        return this;
     }
 
     @Override
@@ -71,11 +72,11 @@ public class EventPlayer implements Startable, Stoppable {
     }
 
     /**
-     * Catches up the event store i.e. the "difference" between the play event store and the record event store.
+     * Catches up the event store i.e. the "difference" between the playback event store and the record event store.
      */
     private void catchup() {
         log.debug("Catching up event player");
-        final Optional<Event> latestPlayedEvent = playEventStore.latest();
+        final Optional<Event> latestPlayedEvent = playbackEventStore.latest();
 
         final Stream<Event> stream;
         if (latestPlayedEvent.isPresent()) {
@@ -85,8 +86,8 @@ public class EventPlayer implements Startable, Stoppable {
             stream = recordEventStore.replayAll();
         }
 
-        stream.forEach(playQueue::add);
-        log.debug("Event player catchup completed, ready to execute [items={}]", playQueue.size());
+        stream.forEach(playbackQueue::add);
+        log.debug("Event player catchup completed, ready to execute [items={}]", playbackQueue.size());
     }
 
     private void startPlaying() {
@@ -95,7 +96,7 @@ public class EventPlayer implements Startable, Stoppable {
             public void run() {
                 while (!stopped) {
                     try {
-                        final Event event = playQueue.poll(500, TimeUnit.MILLISECONDS);
+                        final Event event = playbackQueue.poll(500, TimeUnit.MILLISECONDS);
                         if (event != null) {
                             notifySubscribers(event);
                         }
@@ -112,7 +113,7 @@ public class EventPlayer implements Startable, Stoppable {
                 for (final EventSubscriber eventSubscriber : eventSubscribers) {
                     eventSubscriber.onEvent(event);
                 }
-                playEventStore.append(event);
+                playbackEventStore.append(event);
             }
         });
     }

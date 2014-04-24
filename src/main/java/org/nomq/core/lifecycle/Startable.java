@@ -21,6 +21,6 @@ package org.nomq.core.lifecycle;
  *
  * @author Tommy Wassgren
  */
-public interface Startable {
-    void start();
+public interface Startable<T> {
+    T start();
 }

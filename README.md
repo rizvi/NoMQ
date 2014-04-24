@@ -8,21 +8,23 @@ NoMQ is a simple distributed event queue that has features such as:
  * late join
 
 ```java
-// Initialize NoMQ
-NoMQ noMq = new NoMQ.Builder().build();
-
-// Start it
-noMq.start();
+// Initialize and start NoMQ
+NoMQ noMQ = NoMQBuilder.builder()
+    .build() // Build the NoMQ-instance
+    .start(); // Start it
 
 // Publish a message
-noMq.publisher().publish("Some payload".getBytes());
+noMQ.publish("Some payload".getBytes());
 ```
 
-To register a simple event subscriber:
+To register a simple event subscriber that will receive all events in the cluster in the correct order:
 
 ```java
 // Initialize NoMQ
-NoMQ noMq = new NoMQ.Builder().eventSubscribers(e -> System.out.println(e.id())).build();
+NoMQ noMQ = NoMQBuilder.builder()
+    .eventSubscribers(e -> System.out.println(e.id())) // Register the listener
+    .build() // Build the instance
+    .start(); // Start it
 ```
 
 

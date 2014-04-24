@@ -19,6 +19,7 @@ package org.nomq.core.setup;
 import com.hazelcast.core.Hazelcast;
 import org.junit.Test;
 import org.nomq.core.Event;
+import org.nomq.core.NoMQ;
 import org.nomq.core.process.JournalEventStore;
 
 import java.io.IOException;
@@ -37,33 +38,31 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Tommy Wassgren
  */
-public class NoMQTest {
+public class NoMQBuilderTest {
     @Test
     public void testAdvancedSetup() throws InterruptedException, IOException {
         // Given
         final Path recordFolder = Files.createTempDirectory("org.nomq.test");
         final JournalEventStore recordEventStore = new JournalEventStore(recordFolder.toString());
 
-        final Path playFolder = Files.createTempDirectory("org.nomq.test");
-        final JournalEventStore playEventStore = new JournalEventStore(playFolder.toString());
+        final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
+        final JournalEventStore playbackEventStore = new JournalEventStore(playbackFolder.toString());
 
         final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
         final List<Event> result = new ArrayList<>();
-        final NoMQ noMQ =
-                new NoMQ.Builder()
-                        .play(playEventStore)
-                        .record(recordEventStore)
-                        .playQueue(new LinkedBlockingQueue<>())
-                        .executorService(executorService)
-                        .topic("testTopic")
-                        .eventSubscribers(result::add)
-                        .hazelcast(Hazelcast.newHazelcastInstance())
-                        .build();
-        noMQ.start();
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .playback(playbackEventStore)
+                .record(recordEventStore)
+                .playbackQueue(new LinkedBlockingQueue<>())
+                .executorService(executorService)
+                .topic("testTopic")
+                .subscribe(result::add)
+                .hazelcast(Hazelcast.newHazelcastInstance())
+                .build().start();
 
         // When
-        noMQ.publisher().publish("Simple event".getBytes());
+        noMQ.publish("Simple event".getBytes());
 
         // Wait for the message to be delivered
         Thread.sleep(500);
@@ -79,19 +78,17 @@ public class NoMQTest {
     public void testSetupWithFolders() throws InterruptedException, IOException {
         // Given
         final Path recordFolder = Files.createTempDirectory("org.nomq.test");
-        final Path playFolder = Files.createTempDirectory("org.nomq.test");
+        final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
 
         final List<Event> result = new ArrayList<>();
-        final NoMQ noMQ =
-                new NoMQ.Builder()
-                        .play(playFolder.toString())
-                        .record(recordFolder.toString())
-                        .eventSubscribers(result::add)
-                        .build();
-        noMQ.start();
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .playback(playbackFolder.toString())
+                .record(recordFolder.toString())
+                .subscribe(result::add)
+                .build().start();
 
         // When
-        noMQ.publisher().publish("Simple event".getBytes());
+        noMQ.publish("Simple event".getBytes());
 
         // Wait for the message to be delivered
         Thread.sleep(200);
