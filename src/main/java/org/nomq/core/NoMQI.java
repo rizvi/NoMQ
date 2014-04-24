@@ -19,6 +19,6 @@ package org.nomq.core;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 
-public interface NoMQ extends Startable<NoMQ>, Stoppable, EventPublisher {
+public interface NoMQI extends Startable<NoMQI>, Stoppable, EventPublisher {
     // No additional methods defined
 }
