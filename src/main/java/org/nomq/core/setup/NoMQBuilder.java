@@ -299,7 +299,11 @@ public final class NoMQBuilder {
      * This is where you add event subscribers that will receive events.
      */
     public NoMQBuilder subscribe(final EventSubscriber... eventSubscribers) {
-        this.eventSubscribers = eventSubscribers;
+        if (this.eventSubscribers == null) {
+            this.eventSubscribers = eventSubscribers;
+        } else {
+            this.eventSubscribers = merge(this.eventSubscribers, eventSubscribers);
+        }
         return this;
     }
 
@@ -343,6 +347,15 @@ public final class NoMQBuilder {
         }
 
         return hz;
+    }
+
+    private EventSubscriber[] merge(final EventSubscriber[] first, final EventSubscriber[] second) {
+        final int firstLen = first.length;
+        final int secondLen = second.length;
+        final EventSubscriber[] merged = new EventSubscriber[firstLen + secondLen];
+        System.arraycopy(first, 0, merged, 0, firstLen);
+        System.arraycopy(second, 0, merged, firstLen, secondLen);
+        return merged;
     }
 
     private EventStore playback() {

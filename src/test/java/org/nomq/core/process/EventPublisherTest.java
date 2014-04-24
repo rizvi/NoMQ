@@ -49,6 +49,7 @@ public class EventPublisherTest {
     @Test
     public void testCatchup() throws IOException, InterruptedException {
         final HazelcastInstance publishHazelcastInstance = newHazelcastInstance();
+
         // Create the event stores
         final EventStore recordEventStore = newEventStore();
         final EventStore playbackEventStore = newEventStore();
@@ -98,6 +99,9 @@ public class EventPublisherTest {
 
         // Verify the results
         assertEquals(4L, playbackEventStore.replayAll().count());
+
+        // Cleanup
+        Hazelcast.shutdownAll();
     }
 
     @Test

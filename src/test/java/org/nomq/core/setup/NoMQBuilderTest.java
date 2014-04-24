@@ -34,7 +34,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Test case for the setup classes.
+ * Test case for the setup classes. Illustrates various setup options.
  *
  * @author Tommy Wassgren
  */
@@ -59,7 +59,8 @@ public class NoMQBuilderTest {
                 .topic("testTopic")
                 .subscribe(result::add)
                 .hazelcast(Hazelcast.newHazelcastInstance())
-                .build().start();
+                .build()
+                .start();
 
         // When
         noMQ.publish("Simple event".getBytes());
@@ -72,6 +73,7 @@ public class NoMQBuilderTest {
 
         // Cleanup
         noMQ.stop();
+        Hazelcast.shutdownAll();
     }
 
     @Test
@@ -85,7 +87,8 @@ public class NoMQBuilderTest {
                 .playback(playbackFolder.toString())
                 .record(recordFolder.toString())
                 .subscribe(result::add)
-                .build().start();
+                .build()
+                .start();
 
         // When
         noMQ.publish("Simple event".getBytes());
@@ -98,5 +101,37 @@ public class NoMQBuilderTest {
 
         // Cleanup
         noMQ.stop();
+        Hazelcast.shutdownAll();
+    }
+
+    @Test
+    public void testSetupWithMultipleSubscribers() throws InterruptedException, IOException {
+        // Given
+        final Path recordFolder = Files.createTempDirectory("org.nomq.test");
+        final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
+
+        final List<Event> result1 = new ArrayList<>();
+        final List<Event> result2 = new ArrayList<>();
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .playback(playbackFolder.toString())
+                .record(recordFolder.toString())
+                .subscribe(result1::add)
+                .subscribe(result2::add)
+                .build()
+                .start();
+
+        // When
+        noMQ.publish("Simple event".getBytes());
+
+        // Wait for the message to be delivered
+        Thread.sleep(500);
+
+        // Then - Assert that both subscribers were notified.
+        assertEquals(1, result1.size());
+        assertEquals(1, result2.size());
+
+        // Cleanup
+        noMQ.stop();
+        Hazelcast.shutdownAll();
     }
 }

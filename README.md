@@ -22,9 +22,8 @@ To register a simple event subscriber that will receive all events in the cluste
 ```java
 // Initialize NoMQ
 NoMQ noMQ = NoMQBuilder.builder()
-    .eventSubscribers(e -> System.out.println(e.id())) // Register the listener
+    .subscribe(e -> System.out.println(e.id())) // Register a subscriber
+    .subscribe(e -> doSomethingWithEvent(e)) // Register another subscriber
     .build() // Build the instance
     .start(); // Start it
 ```
-
-
