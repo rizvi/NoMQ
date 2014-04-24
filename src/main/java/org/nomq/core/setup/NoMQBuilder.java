@@ -113,8 +113,8 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public void publish(final byte[] payload) {
-            publisher().publish(payload);
+        public String publish(final byte[] payload) {
+            return publisher.publish(payload);
         }
 
         @Override
@@ -135,10 +135,6 @@ public final class NoMQBuilder {
             stop(recordEventStore);
             stop(playbackEventStore);
             hz.shutdown();
-        }
-
-        private EventPublisher publisher() {
-            return publisher;
         }
 
         private void start(final Object startable) {
@@ -171,7 +167,7 @@ public final class NoMQBuilder {
     }
 
     /**
-     * Build the NoMQBuilder-instance based on the settings you provided in earlier steps.
+     * Build the NoMQBuilder-instance based on the settings you provided in the earlier steps.
      *
      * @return A NoMQBuilder-instance that has not yet been started.
      * @see #playback(String)

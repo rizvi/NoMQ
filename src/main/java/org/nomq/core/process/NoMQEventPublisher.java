@@ -41,11 +41,12 @@ public class NoMQEventPublisher implements EventPublisher {
     }
 
     @Override
-    public void publish(final byte[] payload) {
+    public String publish(final byte[] payload) {
         final Event event = create(payload);
         log.debug("Publish event [id={}]", event.id());
         final IList<Event> q = hazelcastInstance.getList(topic);
         q.add(event);
+        return event.id();
     }
 
     private Event create(final byte[] payload) {
