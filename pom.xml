@@ -38,7 +38,7 @@
         <log4j.version>1.2.17</log4j.version>
         <junit-version>4.11</junit-version>
 
-        <hazelcast-version>3.1.6</hazelcast-version>
+        <hazelcast-version>3.2</hazelcast-version>
         <journalio.version>1.4.2</journalio.version>
 
 
