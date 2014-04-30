@@ -57,6 +57,8 @@ public class NoMQBuilderTest {
                 .playbackQueue(new LinkedBlockingQueue<>())
                 .executorService(executorService)
                 .topic("testTopic")
+                .maxSyncAttempts(4)
+                .syncTimeout(6000)
                 .subscribe(result::add)
                 .hazelcast(Hazelcast.newHazelcastInstance())
                 .build()

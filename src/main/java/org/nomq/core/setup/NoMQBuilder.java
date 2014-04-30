@@ -31,6 +31,8 @@ import org.nomq.core.process.EventPlayer;
 import org.nomq.core.process.EventRecorder;
 import org.nomq.core.process.JournalEventStore;
 import org.nomq.core.process.NoMQEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -90,6 +92,7 @@ public final class NoMQBuilder {
      */
     private static class NoMQSystem implements NoMQ {
         private final HazelcastInstance hz;
+        private final Logger log = LoggerFactory.getLogger(getClass());
         private final EventStore playbackEventStore;
         private final EventPlayer player;
         private final EventPublisher publisher;
@@ -124,6 +127,8 @@ public final class NoMQBuilder {
             start(player);
             start(recorder);
             start(publisher);
+
+            log.debug("NoMQ started [nodeId={}]", hz.getLocalEndpoint().getUuid());
             return this;
         }
 
@@ -134,7 +139,7 @@ public final class NoMQBuilder {
             stop(player);
             stop(recordEventStore);
             stop(playbackEventStore);
-            hz.shutdown();
+            hz.getLifecycleService().shutdown();
         }
 
         private void start(final Object startable) {
@@ -153,9 +158,11 @@ public final class NoMQBuilder {
     private EventSubscriber[] eventSubscribers;
     private ExecutorService executorService;
     private HazelcastInstance hz;
+    private int maxSyncAttempts;
     private EventStore playbackEventStore;
     private BlockingQueue<Event> playbackQueue;
     private EventStore recordEventStore;
+    private long syncTimeout;
     private String topic;
 
     public static NoMQBuilder builder() {
@@ -187,12 +194,14 @@ public final class NoMQBuilder {
         final String topic = topic();
         final ExecutorService executorService = executorService();
         final EventSubscriber[] eventSubscribers = eventSubscribers();
+        final long syncTimeout = syncTimeout();
+        final int maxSyncAttempts = maxSyncAttempts();
 
         return new NoMQSystem(
                 hz,
                 playbackEventStore,
                 recordEventStore,
-                new EventRecorder(playbackQueue, topic, hz, recordEventStore),
+                new EventRecorder(playbackQueue, topic, hz, recordEventStore, syncTimeout, maxSyncAttempts),
                 new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, executorService, eventSubscribers),
                 new NoMQEventPublisher(topic, hz)
         );
@@ -227,6 +236,11 @@ public final class NoMQBuilder {
      */
     public NoMQBuilder hazelcast(final Config config) {
         this.hz = Hazelcast.newHazelcastInstance(config);
+        return this;
+    }
+
+    public NoMQBuilder maxSyncAttempts(final int maxSyncAttempts) {
+        this.maxSyncAttempts = maxSyncAttempts;
         return this;
     }
 
@@ -303,6 +317,11 @@ public final class NoMQBuilder {
         return this;
     }
 
+    public NoMQBuilder syncTimeout(final long syncTimeout) {
+        this.syncTimeout = syncTimeout;
+        return this;
+    }
+
     /**
      * Set the name of the Hazelcast-topic to use. This is only required if multiple instances of NoMQBuilder shares the same
      * Hazelcast instance. The default name is {@link NoMQBuilder#DEFAULT_TOPIC}.
@@ -345,6 +364,13 @@ public final class NoMQBuilder {
         return hz;
     }
 
+    private int maxSyncAttempts() {
+        if (maxSyncAttempts <= 0) {
+            maxSyncAttempts = 3;
+        }
+        return maxSyncAttempts;
+    }
+
     private EventSubscriber[] merge(final EventSubscriber[] first, final EventSubscriber[] second) {
         final int firstLen = first.length;
         final int secondLen = second.length;
@@ -376,6 +402,13 @@ public final class NoMQBuilder {
             recordEventStore = new JournalEventStore(DEFAULT_RECORD_FOLDER);
         }
         return recordEventStore;
+    }
+
+    private long syncTimeout() {
+        if (syncTimeout <= 0) {
+            syncTimeout = 5000;
+        }
+        return syncTimeout;
     }
 
     private String topic() {

@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This item listener feeds the playback queue with all the new entries that are added to the list. During initialization, all
- * events are stored in a temp queue so that the catchup-phase can be executed first.
+ * events are stored in a temp queue so that the sync-phase can be executed first.
  *
  * @author Tommy Wassgren
  */
@@ -48,17 +48,6 @@ class PlaybackQueueItemListener implements ItemListener<Event> {
         this.playbackQueue = playbackQueue;
         tempPlaybackQueue = new LinkedBlockingQueue<>();
         lock = new ReentrantLock();
-    }
-
-    public void catchup(final Set<String> processedIds) {
-        lock.lock();
-        try {
-            removeAlreadyProcessedIds(processedIds, tempPlaybackQueue);
-            tempPlaybackQueue.drainTo(playbackQueue);
-            started = true;
-        } finally {
-            lock.unlock();
-        }
     }
 
     @Override
@@ -80,6 +69,17 @@ class PlaybackQueueItemListener implements ItemListener<Event> {
     @Override
     public void itemRemoved(final ItemEvent<Event> item) {
         // Do nothing
+    }
+
+    public void sync(final Set<String> processedIds) {
+        lock.lock();
+        try {
+            removeAlreadyProcessedIds(processedIds, tempPlaybackQueue);
+            tempPlaybackQueue.drainTo(playbackQueue);
+            started = true;
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void removeAlreadyProcessedIds(final Set<String> processedIds, final BlockingQueue<Event> q) {

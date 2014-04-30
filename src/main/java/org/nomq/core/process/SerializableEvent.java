@@ -23,13 +23,13 @@ import java.io.Serializable;
 /**
  * @author Tommy Wassgren
  */
-public class SerializableEvent implements Event, Serializable {
+class SerializableEvent implements Event, Serializable {
     private static final long serialVersionUID = 1L;
     private static final byte[] EMPTY = new byte[0];
     private final String id;
     private final byte[] payload;
 
-    public SerializableEvent(final String id, final byte[] payload) {
+    SerializableEvent(final String id, final byte[] payload) {
         this.id = id;
         this.payload = payload == null ? EMPTY : payload;
     }

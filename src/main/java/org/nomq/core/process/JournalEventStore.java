@@ -41,7 +41,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * The default implemantation of the event store. This version is backed by <a href="https://github.com/sbtourist/Journal.IO/">Journal.IO</a>
+ * The default implementation of the event store. This version is backed by <a href="https://github.com/sbtourist/Journal.IO/">Journal.IO</a>
  * for persistent storage.
  *
  * @author Tommy Wassgren

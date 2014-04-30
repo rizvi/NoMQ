@@ -47,64 +47,6 @@ public class EventPublisherTest {
     }
 
     @Test
-    public void testCatchup() throws IOException, InterruptedException {
-        final HazelcastInstance publishHazelcastInstance = newHazelcastInstance();
-
-        // Create the event stores
-        final EventStore recordEventStore = newEventStore();
-        final EventStore playbackEventStore = newEventStore();
-
-        // Create the shared queue
-        final BlockingQueue<Event> playbackQueue = new LinkedBlockingQueue<>();
-
-        // Setup the topic
-        final String topic = "test" + System.currentTimeMillis();
-
-        // Create the player and recorder, then start them
-        final EventPlayer player = new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, Executors.newFixedThreadPool(2));
-        final EventRecorder recorder = new EventRecorder(playbackQueue, topic, newHazelcastInstance(), recordEventStore);
-        player.start(); // Player should always be started before the recorder
-        recorder.start();
-
-        // Publish two events
-        publishTwoEvents(topic, publishHazelcastInstance);
-
-        // Wait for a while, allow for the player to process the events
-        Thread.sleep(500);
-
-        // Wait for the player to stop properly
-        player.stop();
-        Thread.sleep(600);
-
-        // Verify the results
-        assertEquals(2L, playbackEventStore.replayAll().count());
-
-
-        // So, now there are some entries in the playback event store. Lets fill the recording store and create new components. This
-        // way the catchup functionality is tested.
-        publishTwoEvents(topic, publishHazelcastInstance);
-
-        // Wait for the recorder to finish
-        Thread.sleep(500);
-
-        // Then, reset the local queue. This means that when the player starts, no elements will be on the queue but the
-        // recording and player event stores will be out of sync.
-        playbackQueue.clear();
-
-        // Finally, start the player again and do the catchup
-        player.start();
-
-        // Wait for a while, allow for the player to process the new
-        Thread.sleep(200);
-
-        // Verify the results
-        assertEquals(4L, playbackEventStore.replayAll().count());
-
-        // Cleanup
-        Hazelcast.shutdownAll();
-    }
-
-    @Test
     public void testSimplePubSubWithMultipleHazelcastInstances() throws IOException, InterruptedException {
         // Publish some messages
         final String topic = "test" + System.currentTimeMillis();
@@ -119,7 +61,8 @@ public class EventPublisherTest {
 
         // Wire the recorder and player
         final List<Event> result = new ArrayList<>();
-        final EventRecorder recorder = new EventRecorder(playbackQueue, topic, newHazelcastInstance(), recordEventStore);
+        final EventRecorder recorder = new EventRecorder(
+                playbackQueue, topic, newHazelcastInstance(), recordEventStore, 5000, 3);
         final EventPlayer player = new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, Executors.newFixedThreadPool(2), array((EventSubscriber) result::add));
 
         // First, start the player
@@ -145,6 +88,64 @@ public class EventPublisherTest {
         Hazelcast.shutdownAll();
     }
 
+    @Test
+    public void testSyncWhenMasterQueueContainsElements() throws IOException, InterruptedException {
+        // Create the event stores
+        final EventStore recordEventStore = newEventStore();
+        final EventStore playbackEventStore = newEventStore();
+
+        // Create the shared queue
+        final BlockingQueue<Event> playbackQueue = new LinkedBlockingQueue<>();
+
+        // Setup the topic
+        final String topic = "test" + System.currentTimeMillis();
+
+        // Create the player and recorder, then start them
+        final EventPlayer player = new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, Executors.newFixedThreadPool(2));
+        final EventRecorder recorder = new EventRecorder(
+                playbackQueue, topic, newHazelcastInstance(), recordEventStore, 5000, 3);
+        player.start(); // Player should always be started before the recorder
+        recorder.start();
+
+        // Publish two events
+        final HazelcastInstance publishHazelcastInstance = newHazelcastInstance();
+        publishTwoEvents(topic, publishHazelcastInstance);
+
+        // Wait for a while, allow for the player to process the events
+        Thread.sleep(500);
+
+        // Wait for the player to stop properly
+        player.stop();
+        Thread.sleep(600);
+
+        // Verify the results
+        assertEquals(2L, playbackEventStore.replayAll().count());
+
+
+        // So, now there are some entries in the playback event store. Lets fill the recording store and create new components. This
+        // way the sync functionality is tested.
+        publishTwoEvents(topic, publishHazelcastInstance);
+
+        // Wait for the recorder to finish
+        Thread.sleep(500);
+
+        // Then, reset the local queue. This means that when the player starts, no elements will be on the queue but the
+        // recording and player event stores will be out of sync.
+        playbackQueue.clear();
+
+        // Finally, start the player again and do the sync
+        player.start();
+
+        // Wait for a while, allow for the player to process the new
+        Thread.sleep(200);
+
+        // Verify the results
+        assertEquals(4L, playbackEventStore.replayAll().count());
+
+        // Cleanup
+        Hazelcast.shutdownAll();
+    }
+
     private byte[] create(final String payload) {
         return payload.getBytes();
     }
@@ -159,9 +160,9 @@ public class EventPublisherTest {
         return Hazelcast.newHazelcastInstance(cfg);
     }
 
-    private void publishTwoEvents(final String topic, final HazelcastInstance hazelcastInstance) throws InterruptedException {
+    private void publishTwoEvents(final String topic, final HazelcastInstance hz) throws InterruptedException {
         // Publish some messages
-        final EventPublisher eventPublisher = new NoMQEventPublisher(topic, hazelcastInstance);
+        final EventPublisher eventPublisher = new NoMQEventPublisher(topic, hz);
         long seqNo = System.currentTimeMillis();
         eventPublisher.publish(create(Long.toString(++seqNo)));
         eventPublisher.publish(create(Long.toString(++seqNo)));

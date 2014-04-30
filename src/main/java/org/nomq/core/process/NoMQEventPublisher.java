@@ -31,20 +31,20 @@ import java.util.UUID;
  * @author Tommy Wassgren
  */
 public class NoMQEventPublisher implements EventPublisher {
-    private final HazelcastInstance hazelcastInstance;
+    private final HazelcastInstance hz;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final String topic;
 
-    public NoMQEventPublisher(final String topic, final HazelcastInstance hazelcastInstance) {
+    public NoMQEventPublisher(final String topic, final HazelcastInstance hz) {
         this.topic = topic;
-        this.hazelcastInstance = hazelcastInstance;
+        this.hz = hz;
     }
 
     @Override
     public String publish(final byte[] payload) {
         final Event event = create(payload);
         log.debug("Publish event [id={}]", event.id());
-        final IList<Event> q = hazelcastInstance.getList(topic);
+        final IList<Event> q = hz.getList(topic);
         q.add(event);
         return event.id();
     }

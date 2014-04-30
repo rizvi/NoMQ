@@ -14,11 +14,13 @@
  *  limitations under the License.
  */
 
-package org.nomq.core;
+package org.nomq.core.process;
 
-import org.nomq.core.lifecycle.Startable;
-import org.nomq.core.lifecycle.Stoppable;
-
-public interface NoMQ extends Startable<NoMQ>, Stoppable, EventPublisher {
-
+/**
+ * @author Tommy Wassgren
+ */
+public class SyncFailureException extends Exception {
+    public SyncFailureException(final String message) {
+        super(message);
+    }
 }

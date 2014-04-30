@@ -60,7 +60,7 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
 
     @Override
     public EventPlayer start() {
-        catchup();
+        sync();
         stopped = false;
         startPlaying();
         return this;
@@ -69,25 +69,6 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
     @Override
     public void stop() {
         stopped = true;
-    }
-
-    /**
-     * Catches up the event store i.e. the "difference" between the playback event store and the record event store.
-     */
-    private void catchup() {
-        log.debug("Catching up event player");
-        final Optional<Event> latestPlayedEvent = playbackEventStore.latest();
-
-        final Stream<Event> stream;
-        if (latestPlayedEvent.isPresent()) {
-            final String idOfLatestPlayedEvent = latestPlayedEvent.get().id();
-            stream = recordEventStore.replay(idOfLatestPlayedEvent);
-        } else {
-            stream = recordEventStore.replayAll();
-        }
-
-        stream.forEach(playbackQueue::add);
-        log.debug("Event player catchup completed, ready to execute [items={}]", playbackQueue.size());
     }
 
     private void startPlaying() {
@@ -116,5 +97,24 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
                 playbackEventStore.append(event);
             }
         });
+    }
+
+    /**
+     * Syncs the event store i.e. the "difference" between the playback event store and the record event store.
+     */
+    private void sync() {
+        log.debug("Syncing event player");
+        final Optional<Event> latestPlayedEvent = playbackEventStore.latest();
+
+        final Stream<Event> stream;
+        if (latestPlayedEvent.isPresent()) {
+            final String idOfLatestPlayedEvent = latestPlayedEvent.get().id();
+            stream = recordEventStore.replay(idOfLatestPlayedEvent);
+        } else {
+            stream = recordEventStore.replayAll();
+        }
+
+        stream.forEach(playbackQueue::add);
+        log.debug("Event player sync completed, ready to execute [items={}]", playbackQueue.size());
     }
 }
