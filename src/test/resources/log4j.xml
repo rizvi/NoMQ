@@ -28,7 +28,7 @@
 
     <!-- Application Loggers -->
     <logger name="org.nomq">
-        <level value="debug"/>
+        <level value="info"/>
     </logger>
 
     <!-- Root Logger -->

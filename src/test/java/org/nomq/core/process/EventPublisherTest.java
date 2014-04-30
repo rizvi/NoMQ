@@ -51,7 +51,6 @@ public class EventPublisherTest {
         // Publish some messages
         final String topic = "test" + System.currentTimeMillis();
 
-
         // Create the event stores
         final EventStore recordEventStore = newEventStore();
         final EventStore playbackEventStore = newEventStore();
