@@ -44,7 +44,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
- * Setup of the NoMQBuilder-system is done via this class. The builder design pattern is used and all the relevant settings can
+ * Setup of the NoMQ-system is done via this class. The builder design pattern is used and all the relevant settings can
  * be changed/overridden.
  *
  * <p>The following components can be specified:
@@ -57,12 +57,12 @@ import java.util.concurrent.ScheduledExecutorService;
  * HazelcastInstance}
  *
  * <strong>Topic</strong>: The name of the internal Hazelcast-queue to use. This is only required if multiple
- * NoMQBuilder-instances share the same Hazelcast-instance.
+ * NoMQ-instances share the same Hazelcast-instance.
  *
  * <strong>Executor service</strong>: If a custom thread pool is to be used (e.g. if you have a shared thread pool or similar).
  * If no thread pool is defined a default fixed-size thread pool is created. </p>
  *
- * To initialize NoMQBuilder with the default values and then publish a message the following code can be used:
+ * To initialize NoMQ with the default values and then publish a message the following code can be used:
  * <pre>
  *     // Initialize and start NoMQ
  *     NoMQ noMQ = NoMQBuilder.builder().build().start();
@@ -74,8 +74,8 @@ import java.util.concurrent.ScheduledExecutorService;
  * The following demonstrates how to register a simple subscriber that will be notified of all events in the cluster in the
  * correct order:
  * <pre>
- *     // Initialize NoMQBuilder with an event subscriber
- *     NoMQBuilder noMQ = NoMQBuilder.builder()
+ *     // Initialize NoMQ with an event subscriber
+ *     NoMQ noMQ = NoMQBuilder.builder()
  *         .subscribe(e -> System.out.println(e.id()))
  *         .build().start();
  * </pre>
@@ -177,9 +177,9 @@ public final class NoMQBuilder {
     }
 
     /**
-     * Build the NoMQBuilder-instance based on the settings you provided in the earlier steps.
+     * Build the NoMQ-instance based on the settings you provided in the earlier steps.
      *
-     * @return A NoMQBuilder-instance that has not yet been started.
+     * @return A NoMQ-instance that has not yet been started.
      * @see #playback(String)
      * @see #playback(org.nomq.core.EventStore)
      * @see #record(String)

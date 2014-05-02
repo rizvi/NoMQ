@@ -17,18 +17,19 @@
 package org.nomq.core;
 
 /**
- * Events can be published by event publishers and received by event subscribers.
+ * Events can be published by event publishers and received by event subscribers. Events contains a generated id and the payload
+ * that was provided by the event publisher.
  *
  * @author Tommy Wassgren
  */
 public interface Event {
     /**
-     * The unique id of the event.
+     * @return The unique id of the event.
      */
     String id();
 
     /**
-     * The payload of the event.
+     * @return The payload of the event.
      */
     byte[] payload();
 }

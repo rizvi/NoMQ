@@ -17,16 +17,16 @@
 package org.nomq.core;
 
 /**
- * Publish events to the NoMQBuilder-system. A reference to the EventPublisher can be obtained from the setup
- * (NoMQBuilder.publisher()).
+ * Publish events to the NoMQ-system.
  *
  * @author Tommy Wassgren
  */
 @FunctionalInterface
 public interface EventPublisher {
     /**
-     * Publishes the provided payload to the NoMQBuilder-system.
+     * Publishes the provided payload to the NoMQ-system.
      *
+     * @param payload The payload that will published with the event.
      * @return The id of the published event.
      */
     String publish(byte[] payload);
