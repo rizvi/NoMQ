@@ -27,7 +27,7 @@ import java.util.concurrent.locks.Lock;
  *
  * @author Tommy Wassgren
  */
-public class LockTemplate {
+class LockTemplate {
     @FunctionalInterface
     public interface LockCallback {
         void execute();
@@ -42,7 +42,7 @@ public class LockTemplate {
         this.timeout = timeout;
     }
 
-    public void lock(final LockCallback callback) {
+    void lock(final LockCallback callback) {
         log.debug("Obtaining lock");
         lock.lock();
 
@@ -56,7 +56,7 @@ public class LockTemplate {
         }
     }
 
-    public void tryLock(final LockCallback callback) {
+    void tryLock(final LockCallback callback) {
         try {
             log.debug("Obtaining lock");
             lock.tryLock(timeout, TimeUnit.MILLISECONDS);

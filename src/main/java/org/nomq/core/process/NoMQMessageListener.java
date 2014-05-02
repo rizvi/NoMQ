@@ -75,7 +75,7 @@ class NoMQMessageListener implements MessageListener<Event>, Stoppable {
         synced = false;
     }
 
-    public void sync(final Set<String> processedIds) {
+    void sync(final Set<String> processedIds) {
         lockTemplate.lock(() -> {
             removeAlreadyProcessedIds(processedIds, tempPlaybackQueue);
             tempPlaybackQueue.drainTo(playbackQueue);
