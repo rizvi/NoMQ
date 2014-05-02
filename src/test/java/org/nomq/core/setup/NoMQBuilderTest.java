@@ -27,9 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.assertEquals;
 
@@ -48,7 +48,7 @@ public class NoMQBuilderTest {
         final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
         final JournalEventStore playbackEventStore = new JournalEventStore(playbackFolder.toString());
 
-        final ExecutorService executorService = Executors.newFixedThreadPool(2);
+        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
 
         final List<Event> result = new ArrayList<>();
         final NoMQ noMQ = NoMQBuilder.builder()
@@ -57,7 +57,7 @@ public class NoMQBuilderTest {
                 .playbackQueue(new LinkedBlockingQueue<>())
                 .executorService(executorService)
                 .topic("testTopic")
-                .maxSyncAttempts(4)
+                .syncAttempts(4)
                 .syncTimeout(6000)
                 .subscribe(result::add)
                 .hazelcast(Hazelcast.newHazelcastInstance())

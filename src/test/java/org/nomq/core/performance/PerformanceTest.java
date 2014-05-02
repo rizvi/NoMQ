@@ -16,7 +16,6 @@
 
 package org.nomq.core.performance;
 
-import org.junit.Test;
 import org.nomq.core.Event;
 import org.nomq.core.NoMQ;
 import org.nomq.core.process.JournalEventStore;
@@ -34,11 +33,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PerformanceTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Test
-    public void sendLoadsOfEvents() throws IOException, InterruptedException {
+    public static void main(final String[] args) throws IOException, InterruptedException {
+        new PerformanceTest().sendLoadsOfEvents();
+    }
+
+    private void sendLoadsOfEvents() throws IOException, InterruptedException {
         final NoMQ noMQ1 = NoMQBuilder.builder()
                 .record(tempFolder())
                 .playback(tempFolder())
+
                 .build()
                 .start();
 
@@ -57,19 +60,16 @@ public class PerformanceTest {
                 .build()
                 .start();
 
-
         final long start = System.currentTimeMillis();
         final int nrOfEvents = 100000;
         for (int i = 0; i < nrOfEvents; i++) {
             noMQ1.publish(("Payload #" + Integer.toString(i)).getBytes());
         }
-        final long publishedCompleted = System.currentTimeMillis();
 
-
+        final long publishCompleted = System.currentTimeMillis();
         while (true) {
             Thread.sleep(50);
             if (counter.get() >= nrOfEvents) {
-
                 break;
             }
         }
@@ -78,7 +78,7 @@ public class PerformanceTest {
         noMQ1.stop();
         noMQ2.stop();
 
-        log.info("Performance test completed: [total={}, publish={}]", (receiveCompleted - start), (publishedCompleted - start));
+        log.info("Performance test completed: [total={}, publish={}]", (receiveCompleted - start), (publishCompleted - start));
     }
 
     private String tempFolder() throws IOException {

@@ -38,9 +38,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Setup of the NoMQBuilder-system is done via this class. The builder design pattern is used and all the relevant settings can
@@ -53,14 +53,13 @@ import java.util.concurrent.LinkedBlockingQueue;
  * <strong>Playback event store</strong>: Contains the events that have been dispatched to this application.
  *
  * <strong>Hazelcast</strong>: Various ways of configuring the Hazelcast cluster either via configuration or via a {@link
- * com.hazelcast.core.HazelcastInstance}
+ * HazelcastInstance}
  *
  * <strong>Topic</strong>: The name of the internal Hazelcast-queue to use. This is only required if multiple
  * NoMQBuilder-instances share the same Hazelcast-instance.
  *
  * <strong>Executor service</strong>: If a custom thread pool is to be used (e.g. if you have a shared thread pool or similar).
  * If no thread pool is defined a default fixed-size thread pool is created. </p>
- *
  *
  * To initialize NoMQBuilder with the default values and then publish a message the following code can be used:
  * <pre>
@@ -86,6 +85,9 @@ public final class NoMQBuilder {
     public static final String DEFAULT_RECORD_FOLDER = System.getProperty("user.home") + "/.nomq/record";
     public static final String DEFAULT_PLAYBACK_FOLDER = System.getProperty("user.home") + "/.nomq/playback";
     public static final String DEFAULT_TOPIC = "NoMQ";
+
+    public static final long DEFAULT_SYNC_TIMEOUT = 5000;
+    public static final int DEFAULT_SYNC_ATTEMPTS = 3;
 
     /**
      * The internal implementation of the NoMQ-system.
@@ -156,7 +158,7 @@ public final class NoMQBuilder {
     }
 
     private EventSubscriber[] eventSubscribers;
-    private ExecutorService executorService;
+    private ScheduledExecutorService executorService;
     private HazelcastInstance hz;
     private int maxSyncAttempts;
     private EventStore playbackEventStore;
@@ -182,9 +184,9 @@ public final class NoMQBuilder {
      * @see #record(String)
      * @see #record(org.nomq.core.EventStore)
      * @see #hazelcast(com.hazelcast.config.Config)
-     * @see #hazelcast(com.hazelcast.core.HazelcastInstance)
+     * @see #hazelcast(HazelcastInstance)
      * @see #playbackQueue(java.util.concurrent.BlockingQueue)
-     * @see #executorService(java.util.concurrent.ExecutorService)
+     * @see #executorService(java.util.concurrent.ScheduledExecutorService)
      */
     public NoMQ build() {
         final BlockingQueue<Event> playbackQueue = playbackQueue();
@@ -192,25 +194,27 @@ public final class NoMQBuilder {
         final EventStore recordEventStore = record();
         final HazelcastInstance hz = hazelcast();
         final String topic = topic();
-        final ExecutorService executorService = executorService();
+        final ScheduledExecutorService executorService = executorService();
         final EventSubscriber[] eventSubscribers = eventSubscribers();
         final long syncTimeout = syncTimeout();
-        final int maxSyncAttempts = maxSyncAttempts();
+        final int maxSyncAttempts = syncAttempts();
+
+        final NoMQEventPublisher eventPublisher = new NoMQEventPublisher(topic, hz);
 
         return new NoMQSystem(
                 hz,
                 playbackEventStore,
                 recordEventStore,
-                new EventRecorder(playbackQueue, topic, hz, recordEventStore, syncTimeout, maxSyncAttempts),
+                new EventRecorder(eventPublisher, playbackQueue, topic, hz, recordEventStore, syncTimeout, maxSyncAttempts),
                 new EventPlayer(playbackQueue, playbackEventStore, recordEventStore, executorService, eventSubscribers),
-                new NoMQEventPublisher(topic, hz)
+                eventPublisher
         );
     }
 
     /**
      * Provide your own thread pool instead of the default.
      */
-    public NoMQBuilder executorService(final ExecutorService executorService) {
+    public NoMQBuilder executorService(final ScheduledExecutorService executorService) {
         this.executorService = executorService;
         return this;
     }
@@ -232,15 +236,10 @@ public final class NoMQBuilder {
      * or via configuration files. See <a href="http://hazelcast.org/docs/latest/manual/html-single/hazelcast-documentation.html#configuration">the
      * Hazelcast documentation</a> for more info.
      *
-     * @see #hazelcast(com.hazelcast.core.HazelcastInstance)
+     * @see #hazelcast(HazelcastInstance)
      */
     public NoMQBuilder hazelcast(final Config config) {
         this.hz = Hazelcast.newHazelcastInstance(config);
-        return this;
-    }
-
-    public NoMQBuilder maxSyncAttempts(final int maxSyncAttempts) {
-        this.maxSyncAttempts = maxSyncAttempts;
         return this;
     }
 
@@ -317,6 +316,21 @@ public final class NoMQBuilder {
         return this;
     }
 
+    /**
+     * Sets the max number of attempts that NoMQ will attempt to sync the data during startup.
+     *
+     * @see #syncTimeout(long)
+     */
+    public NoMQBuilder syncAttempts(final int maxSyncAttempts) {
+        this.maxSyncAttempts = maxSyncAttempts;
+        return this;
+    }
+
+    /**
+     * Sets the timeout (in millis) for how long the sync operation should wait before it performs a new attempt.
+     *
+     * @see #syncAttempts(int)
+     */
     public NoMQBuilder syncTimeout(final long syncTimeout) {
         this.syncTimeout = syncTimeout;
         return this;
@@ -349,9 +363,9 @@ public final class NoMQBuilder {
         return eventSubscribers;
     }
 
-    private ExecutorService executorService() {
+    private ScheduledExecutorService executorService() {
         if (executorService == null) {
-            executorService = Executors.newFixedThreadPool(2);
+            executorService = Executors.newScheduledThreadPool(3);
         }
         return executorService;
     }
@@ -362,13 +376,6 @@ public final class NoMQBuilder {
         }
 
         return hz;
-    }
-
-    private int maxSyncAttempts() {
-        if (maxSyncAttempts <= 0) {
-            maxSyncAttempts = 3;
-        }
-        return maxSyncAttempts;
     }
 
     private EventSubscriber[] merge(final EventSubscriber[] first, final EventSubscriber[] second) {
@@ -404,15 +411,22 @@ public final class NoMQBuilder {
         return recordEventStore;
     }
 
+    private int syncAttempts() {
+        if (maxSyncAttempts <= 0) {
+            maxSyncAttempts = DEFAULT_SYNC_ATTEMPTS;
+        }
+        return maxSyncAttempts;
+    }
+
     private long syncTimeout() {
         if (syncTimeout <= 0) {
-            syncTimeout = 5000;
+            syncTimeout = DEFAULT_SYNC_TIMEOUT;
         }
         return syncTimeout;
     }
 
     private String topic() {
-        if (topic == null) {
+        if (topic == null || topic.length() == 0) {
             topic = DEFAULT_TOPIC;
         }
         return topic;

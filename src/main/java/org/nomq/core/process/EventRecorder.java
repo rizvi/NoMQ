@@ -17,7 +17,6 @@
 package org.nomq.core.process;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IList;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.lifecycle.Startable;
@@ -25,6 +24,8 @@ import org.nomq.core.lifecycle.Stoppable;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+
+import static org.nomq.core.process.NoMQHelper.sharedTopic;
 
 /**
  * The event recorder stores all incoming events in the event store and notifies the shared in-memory queue. This is the "store"
@@ -35,12 +36,14 @@ import java.util.concurrent.BlockingQueue;
 public class EventRecorder implements Startable<EventRecorder>, Stoppable {
     private final EventSynchronizer eventSynchronizer;
     private final HazelcastInstance hz;
+    private PlaybackQueueItemListener itemListener;
     private String listenerId;
     private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
     private final String topic;
 
     public EventRecorder(
+            final NoMQEventPublisher eventPublisher,
             final BlockingQueue<Event> playbackQueue,
             final String topic,
             final HazelcastInstance hz,
@@ -53,7 +56,7 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
         this.hz = hz;
         this.recordEventStore = recordEventStore;
         this.eventSynchronizer = new EventSynchronizer(
-                playbackQueue, topic, hz, recordEventStore, syncTimeout, maxSyncAttempts);
+                eventPublisher, playbackQueue, topic, hz, recordEventStore, syncTimeout, maxSyncAttempts);
     }
 
     @Override
@@ -64,23 +67,23 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
 
     @Override
     public void stop() {
-        hz.getList(topic).removeItemListener(listenerId);
+        if (itemListener != null) {
+            itemListener.stop();
+        }
+        sharedTopic(hz, topic).removeItemListener(listenerId);
         listenerId = null;
     }
 
-    private IList<Event> masterList() {
-        return hz.getList(topic);
-    }
 
     /**
      * Catches up from the remote collection. Retrieves all elements from the remote collection (based on the "latest" entry in
      * the recorded event store) and adds them to the event store (and local playback queue).
      */
     private void sync() {
-        // Start listening to messages and store them in the playback queue. Before the queue has caught up the events are stored in
-        // a temp playback queue.
-        final PlaybackQueueItemListener itemListener = new PlaybackQueueItemListener(recordEventStore, playbackQueue);
-        listenerId = masterList().addItemListener(itemListener, true);
+        // Start listening to messages and store them in the playback queue. Before the queue has caught up the events are
+        // stored in a temp playback queue.
+        itemListener = new PlaybackQueueItemListener(recordEventStore, playbackQueue);
+        listenerId = sharedTopic(hz, topic).addItemListener(itemListener, true);
 
         // Do the actual sync with the cluster. All processed ids are returned so that they can be removed from the temp queue
         // in the next step.

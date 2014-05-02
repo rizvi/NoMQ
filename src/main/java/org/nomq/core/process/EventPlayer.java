@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -43,7 +44,8 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
     private final EventStore playbackEventStore;
     private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
-    private boolean stopped = false;
+
+    private Future<?> runner;
 
     public EventPlayer(
             final BlockingQueue<Event> playbackQueue,
@@ -61,28 +63,29 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
     @Override
     public EventPlayer start() {
         sync();
-        stopped = false;
         startPlaying();
         return this;
     }
 
     @Override
     public void stop() {
-        stopped = true;
+        runner.cancel(true);
+        runner = null;
     }
 
     private void startPlaying() {
-        executorService.execute(new Runnable() {
+        runner = executorService.submit(new Runnable() {
             @Override
             public void run() {
-                while (!stopped) {
+                while (true) {
                     try {
                         final Event event = playbackQueue.poll(500, TimeUnit.MILLISECONDS);
                         if (event != null) {
                             notifySubscribers(event);
                         }
                     } catch (final InterruptedException e) {
-                        log.error("Interrupted processing", e);
+                        log.debug("Player stopping");
+                        break;
                     }
                 }
             }

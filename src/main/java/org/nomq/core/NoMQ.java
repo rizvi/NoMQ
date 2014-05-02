@@ -19,6 +19,12 @@ package org.nomq.core;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 
+/**
+ * The entry point for working with the NoMQ-system. The NoMQ-instance is created via the class NoMQBuilder and this instance is
+ * simply used for lifecycle management and publishing of events.
+ *
+ * @author Tommy Wassgren
+ */
 public interface NoMQ extends Startable<NoMQ>, Stoppable, EventPublisher {
-
+    // No additional methods added here - publishing and lifecycle is all that is required.
 }

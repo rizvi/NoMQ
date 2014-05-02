@@ -20,14 +20,16 @@ import com.hazelcast.core.ItemEvent;
 import com.hazelcast.core.ItemListener;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
+import org.nomq.core.lifecycle.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static org.nomq.core.process.NoMQHelper.isSyncRequest;
 
 /**
  * This item listener feeds the playback queue with all the new entries that are added to the list. During initialization, all
@@ -35,51 +37,61 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author Tommy Wassgren
  */
-class PlaybackQueueItemListener implements ItemListener<Event> {
-    private final Lock lock;
+class PlaybackQueueItemListener implements ItemListener<Event>, Stoppable {
+    private final LockTemplate lockTemplate;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
-    private boolean started = false;
+    private boolean synced = false;
     private final BlockingQueue<Event> tempPlaybackQueue;
 
     PlaybackQueueItemListener(final EventStore recordEventStore, final BlockingQueue<Event> playbackQueue) {
         this.recordEventStore = recordEventStore;
         this.playbackQueue = playbackQueue;
         tempPlaybackQueue = new LinkedBlockingQueue<>();
-        lock = new ReentrantLock();
+        lockTemplate = new LockTemplate(new ReentrantLock(), 0);
     }
 
     @Override
     public void itemAdded(final ItemEvent<Event> event) {
-        lock.lock();
-        try {
-            if (started) {
-                log.debug("Recording event [id={}]", event.getItem().id());
-                recordEventStore.append(event.getItem());
-                playbackQueue.add(event.getItem());
+        lockTemplate.lock(() -> {
+            if (synced) {
+                if (event.getItem() != null) {
+                    log.debug("Recording event [id={}]", event.getItem().id());
+
+                    recordEventStore.append(event.getItem());
+
+                    if (!isSyncRequest(event.getItem())) {
+                        playbackQueue.add(event.getItem());
+                    }
+                }
             } else {
-                tempPlaybackQueue.add(event.getItem());
+                if (event.getItem() != null) {
+                    if (!isSyncRequest(event.getItem())) {
+                        tempPlaybackQueue.add(event.getItem());
+                    }
+                }
             }
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     @Override
     public void itemRemoved(final ItemEvent<Event> item) {
         // Do nothing
+        log.info("Event [type={}]", item.getEventType());
+    }
+
+    @Override
+    public void stop() {
+        synced = false;
     }
 
     public void sync(final Set<String> processedIds) {
-        lock.lock();
-        try {
+        lockTemplate.lock(() -> {
             removeAlreadyProcessedIds(processedIds, tempPlaybackQueue);
             tempPlaybackQueue.drainTo(playbackQueue);
-            started = true;
-        } finally {
-            lock.unlock();
-        }
+            synced = true;
+        });
     }
 
     private void removeAlreadyProcessedIds(final Set<String> processedIds, final BlockingQueue<Event> q) {

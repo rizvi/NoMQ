@@ -42,7 +42,10 @@ public class NoMQEventPublisher implements EventPublisher {
 
     @Override
     public String publish(final byte[] payload) {
-        final Event event = create(payload);
+        return publish(create(payload));
+    }
+
+    String publish(final Event event) {
         log.debug("Publish event [id={}]", event.id());
         final IList<Event> q = hz.getList(topic);
         q.add(event);

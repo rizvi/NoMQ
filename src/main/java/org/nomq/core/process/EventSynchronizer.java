@@ -17,8 +17,6 @@
 package org.nomq.core.process;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IList;
-import com.hazelcast.core.ILock;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.IQueue;
 import com.hazelcast.core.ITopic;
@@ -29,13 +27,18 @@ import org.nomq.core.EventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+
+import static org.nomq.core.process.NoMQHelper.all;
+import static org.nomq.core.process.NoMQHelper.createEvent;
+import static org.nomq.core.process.NoMQHelper.generateSyncRequestId;
+import static org.nomq.core.process.NoMQHelper.isSyncRequest;
+import static org.nomq.core.process.NoMQHelper.lockTemplate;
 
 /**
  * Synchronizes events during startup. When NoMQ starts a sync request is published and hopefylly some other NoMQ-node replies.
@@ -44,6 +47,7 @@ import java.util.stream.Stream;
  * @author Tommy Wassgren
  */
 class EventSynchronizer {
+    private final NoMQEventPublisher eventPublisher;
     private final HazelcastInstance hz;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final int maxSyncAttempts;
@@ -52,12 +56,14 @@ class EventSynchronizer {
     private final long timeout;
     private final String topic;
 
-    EventSynchronizer(final BlockingQueue<Event> playbackQueue,
+    EventSynchronizer(final NoMQEventPublisher eventPublisher,
+                      final BlockingQueue<Event> playbackQueue,
                       final String topic,
                       final HazelcastInstance hz,
                       final EventStore recordEventStore,
                       final long timeout,
                       final int maxSyncAttempts) {
+        this.eventPublisher = eventPublisher;
         this.playbackQueue = playbackQueue;
         this.hz = hz;
         this.topic = topic;
@@ -73,26 +79,15 @@ class EventSynchronizer {
      * @return A set containing all processed keys.
      */
     Set<String> sync() {
-        // Do the actual sync. First sync from the cluster
-        final Set<String> processedClusterIds = syncFromCluster(maxSyncAttempts);
-
-        // Then sync from the master list
-        final Set<String> processedMasterIds = syncFromMasterList();
+        // Sync from the cluster
+        final Set<String> processedIds = syncFromCluster(maxSyncAttempts);
 
         // Recordings are now all synced up, NoMQ is now ready for responding to sync requests as well so add the sync-request
         // listener
-        handleSyncRequests();
+        startRespondingToSyncRequests();
 
         // return the already "processed" ids
-        return merge(processedClusterIds, processedMasterIds);
-    }
-
-    private String createSyncRequest(final String syncId) {
-        // Find the id of the latest processed event
-        final Optional<Event> latestProcessedEvent = recordEventStore.latest();
-        final String latestProcessedId = latestProcessedEvent.isPresent() ? latestProcessedEvent.get().id() : "all";
-
-        return syncId + ":" + latestProcessedId;
+        return processedIds;
     }
 
     private boolean doesClusterContainEnoughMembersForSync() {
@@ -100,54 +95,21 @@ class EventSynchronizer {
         return members.size() > 1;
     }
 
-    private String generateSyncId() {
-        return UUID.randomUUID().toString();
-    }
-
-    private void handleSyncRequests() {
-        requestTopic().addMessageListener(request -> {
-            log.info("Handling resend request [request={}]", request.getMessageObject());
-            final String syncId = syncId(request);
-            final ILock lock = hz.getLock(syncId);
-            try {
-                lock.tryLock(timeout, TimeUnit.MILLISECONDS);
-                final String replayFromId = replayFromId(request);
-
-                if (isSyncRequestAlreadyHandled(syncId)) {
-                    log.info("Skipping resend request [request={}]", request.getMessageObject());
-                } else {
-                    sendSyncResponse(syncId, replayFromId);
-                }
-            } catch (InterruptedException e) {
-                throw new IllegalStateException("Unable to respond to sync request", e);
-            } finally {
-                lock.unlock();
-            }
-        });
-
-    }
-
-
     private boolean isSyncRequestAlreadyHandled(final String syncId) {
         final IMap<String, String> statusMap = hz.getMap(requestMapName());
         final String previous = statusMap.putIfAbsent(syncId, hz.getLocalEndpoint().getUuid());
         return previous != null;
     }
 
-    private Set<String> merge(final Set<String> processedClusterIds, final Set<String> processedMasterIds) {
-        final Set<String> processedIds = new HashSet<>();
-        processedIds.addAll(processedClusterIds);
-        processedIds.addAll(processedMasterIds);
-        return processedIds;
-    }
-
     /**
      * Polls the response queue and processes the received events. If no events are received this operation times out.
      */
-    private boolean pollAndProcess(final Set<String> processedKeys, final String syncId, final IQueue<Event> responseQueue) throws InterruptedException, SyncFailureException {
+    private boolean pollAndProcess(final Set<String> processedKeys, final String syncRequestId, final IQueue<Event> responseQueue)
+            throws InterruptedException, SyncFailureException {
+
         final Event event = responseQueue.poll(timeout, TimeUnit.MILLISECONDS);
         if (event != null) {
-            if (event.id().equals(syncId)) {
+            if (event.id().equals(syncRequestId)) {
                 // Sync completed
                 return true;
             } else {
@@ -156,7 +118,6 @@ class EventSynchronizer {
         } else {
             // No response - unable to sync
             throw new SyncFailureException("Unable to sync, no response from queue");
-
         }
         return false;
     }
@@ -165,18 +126,21 @@ class EventSynchronizer {
         log.debug("Recording event [id={}] - sync", event.id());
         processedKeys.add(event.id());
         recordEventStore.append(event);
-        playbackQueue.add(event);
+
+        if (!isSyncRequest(event)) {
+            playbackQueue.add(event);
+        }
     }
 
-    private void publishSyncRequest(final String syncId) {
+    private void publishSyncRequest(final String syncRequestId) {
         final ITopic<String> syncRequests = hz.getTopic(requestTopicName());
 
         // Publish the resend request on the command queue
-        syncRequests.publish(createSyncRequest(syncId));
+        syncRequests.publish(syncRequestId);
     }
 
     private boolean replayAll(final String str) {
-        return "all".equals(str);
+        return all().equals(str);
     }
 
     private String replayFromId(final Message<String> message) {
@@ -215,24 +179,35 @@ class EventSynchronizer {
                 throw new IllegalStateException("Unable to respond to sync request", e);
             }
         });
+    }
 
-        // Finally - send an event with the "syncId" to indicate that the resend has completed.
-        queue.add(new SerializableEvent(syncId, "".getBytes()));
+    private void startRespondingToSyncRequests() {
+        requestTopic().addMessageListener(request -> {
+            log.info("Handling resend request [request={}]", request.getMessageObject());
+            final String syncRequestId = request.getMessageObject();
+            lockTemplate(hz, syncRequestId, timeout).tryLock(() -> {
+                final String replayFromId = replayFromId(request);
+                if (isSyncRequestAlreadyHandled(syncRequestId)) {
+                    log.info("Skipping resend request [request={}]", request.getMessageObject());
+                } else {
+                    sendSyncResponse(syncRequestId, replayFromId);
+                }
+            });
+        });
     }
 
     private Set<String> syncFromCluster() throws SyncFailureException {
         final Set<String> processedKeys = new HashSet<>();
 
-        if (doesClusterContainEnoughMembersForSync()) {
-            // First, generate a sync id to use for this sync-session
-            final String syncId = generateSyncId();
+        // Publish a "sync" event on the real event queue. This id will be used later as a check to see that NoMQ has
+        // been completely synced.
+        final String syncRequestId = eventPublisher.publish(createEvent(generateSyncRequestId(recordEventStore)));
 
-            // Publish the sync request
-            publishSyncRequest(syncId);
+        // Publish the sync request
+        publishSyncRequest(syncRequestId);
 
-            // Then, wait for the sync-response
-            waitForSyncResponse(processedKeys, syncId);
-        }
+        // Then, wait for the sync-response (an exception will be thrown if sync fails)
+        waitForSyncResponse(processedKeys, syncRequestId);
 
         return processedKeys;
     }
@@ -241,47 +216,27 @@ class EventSynchronizer {
      * Attempts to sync the events from the cluster repeatedly.
      */
     private Set<String> syncFromCluster(final int nrOfAttempts) {
-        final Set<String> allProcessedKeys = new HashSet<>();
-
-        for (int i = 0; i < nrOfAttempts; i++) {
-            try {
-                final Set<String> processedKeys = syncFromCluster();
-                allProcessedKeys.addAll(processedKeys);
-            } catch (final SyncFailureException e) {
-                // Sync failed, try again...
-                log.error("Failed to sync [attempt={}/{}]", i + 1, nrOfAttempts, e);
+        if (doesClusterContainEnoughMembersForSync()) {
+            for (int i = 0; i < nrOfAttempts; i++) {
+                try {
+                    return syncFromCluster();
+                } catch (final SyncFailureException e) {
+                    // Sync failed, try again...
+                    log.error("Failed to sync [attempt={}/{}]", i + 1, nrOfAttempts, e);
+                }
             }
         }
-        return allProcessedKeys;
+        return Collections.emptySet();
     }
 
-    private Set<String> syncFromMasterList() {
-        final RecordEventProcessingStatus status = new RecordEventProcessingStatus(recordEventStore.latest());
-
-        // Then, process all the messages and store a key-ref for later use
-        final IList<Event> coll = hz.getList(topic);
-        final Set<String> processedKeys = new HashSet<>();
-        coll.forEach(event -> {
-            if (status.shouldProcess(event.id())) {
-                processEvent(event, processedKeys);
-            }
-        });
-
-        return processedKeys;
-    }
-
-    private String syncId(final Message<String> message) {
-        return message.getMessageObject().split(":")[0];
-    }
-
-    private void waitForSyncResponse(final Set<String> processedKeys, final String syncId) throws SyncFailureException {
+    private void waitForSyncResponse(final Set<String> processedKeys, final String syncRequestId) throws SyncFailureException {
         // Wait/handle the response
         try {
             // The response queue uses the same name as the entire sync-operation
-            final IQueue<Event> responseQueue = hz.getQueue(syncId);
+            final IQueue<Event> responseQueue = hz.getQueue(syncRequestId);
 
             while (true) {
-                if (pollAndProcess(processedKeys, syncId, responseQueue)) {
+                if (pollAndProcess(processedKeys, syncRequestId, responseQueue)) {
                     break;
                 }
             }
