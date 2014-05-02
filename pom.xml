@@ -22,8 +22,53 @@
 
     <groupId>org.nomq</groupId>
     <artifactId>nomq-core</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/wassgren/NoMQ/issues</url>
+    </issueManagement>
+
+    <description>
+        NoMQ is short for Not a Message Queue. It is a distributed event queue that is based on Java 8 and Hazelcast. NoMQ
+        requires NO installation, simply add the jar to your project.
+    </description>
+
+    <scm>
+        <connection>scm:git:git@github.com:wassgren/NoMQ.git</connection>
+        <url>scm:git:git@github.com:wassgren/NoMQ.git</url>
+        <developerConnection>scm:git:git@github.com:wassgren/NoMQ.git</developerConnection>
+    </scm>
+
+    <url>http://www.nomq.org</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <ciManagement>
+        <system>Travis CI</system>
+        <url>https://travis-ci.org/wassgren/NoMQ</url>
+    </ciManagement>
+
+    <developers>
+        <developer>
+            <id>tommy.wassgren</id>
+            <name>Tommy Wassgren</name>
+            <email>tommy.wassgren@gmail.com</email>
+            <url>https://github.com/wassgren/NoMQ</url>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
 
     <properties>
         <!-- These two properties must exist in order to force UTF-8 for all "standard" plugins -->
@@ -31,22 +76,22 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Compiler -->
-        <java-version>1.8</java-version>
+        <java.version>1.8</java.version>
 
         <!-- External libraries -->
-        <org.slf4j-version>1.7.5</org.slf4j-version>
+        <org.slf4j.version>1.7.7</org.slf4j.version>
         <log4j.version>1.2.17</log4j.version>
-        <junit-version>4.11</junit-version>
-
-        <hazelcast-version>3.2</hazelcast-version>
+        <junit.version>4.11</junit.version>
+        <hazelcast.version>3.2</hazelcast.version>
         <journalio.version>1.4.2</journalio.version>
 
-
         <!-- Plugins -->
-        <maven-compiler-plugin-version>3.1</maven-compiler-plugin-version>
-        <maven-resources-plugin-version>2.6</maven-resources-plugin-version>
-        <maven-jar-plugin-version>2.4</maven-jar-plugin-version>
-        <maven-clean-plugin-version>2.5</maven-clean-plugin-version>
+        <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
+        <maven-resources-plugin.version>2.6</maven-resources-plugin.version>
+        <maven-jar-plugin.version>2.4</maven-jar-plugin.version>
+        <maven-clean-plugin.version>2.5</maven-clean-plugin.version>
+        <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
+        <maven-release-plugin.version>2.5</maven-release-plugin.version>
     </properties>
 
 
@@ -55,7 +100,7 @@
             <dependency>
                 <groupId>com.hazelcast</groupId>
                 <artifactId>hazelcast</artifactId>
-                <version>${hazelcast-version}</version>
+                <version>${hazelcast.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
@@ -67,19 +112,19 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>${org.slf4j-version}</version>
+                <version>${org.slf4j.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
-                <version>${org.slf4j-version}</version>
+                <version>${org.slf4j.version}</version>
                 <scope>runtime</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
-                <version>${org.slf4j-version}</version>
+                <version>${org.slf4j.version}</version>
                 <scope>runtime</scope>
             </dependency>
             <dependency>
@@ -110,7 +155,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>${junit-version}</version>
+                <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
@@ -145,22 +190,32 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
-                    <version>${maven-clean-plugin-version}</version>
+                    <version>${maven-clean-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>${maven-jar-plugin-version}</version>
+                    <version>${maven-jar-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>${maven-resources-plugin-version}</version>
+                    <version>${maven-resources-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven-compiler-plugin-version}</version>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven-source-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>${maven-release-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -170,8 +225,36 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${java-version}</source>
-                    <target>${java-version}</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven-source-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
