@@ -71,15 +71,4 @@ public class LockTemplate {
             lock.unlock();
         }
     }
-
-    private void doInLock(final LockCallback callback) {
-        try {
-            callback.execute();
-        } catch (final Exception e) {
-            throw new IllegalStateException("Error when executing in lock block", e);
-        } finally {
-            log.debug("Unlocking");
-            lock.unlock();
-        }
-    }
 }

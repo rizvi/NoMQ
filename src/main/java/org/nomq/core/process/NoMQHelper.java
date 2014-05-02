@@ -17,7 +17,7 @@
 package org.nomq.core.process;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IList;
+import com.hazelcast.core.ITopic;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 
@@ -64,11 +64,7 @@ class NoMQHelper {
         return new LockTemplate(hz.getLock(lockName), timeout);
     }
 
-    static IList<Event> sharedTopic(final HazelcastInstance hz, final String topic) {
-        return hz.getList(topic);
-    }
-
-    static LockTemplate topicLock(final HazelcastInstance hz, final String topic, final long timeout) {
-        return lockTemplate(hz, topic + "-topicLock", timeout);
+    static ITopic<Event> sharedTopic(final HazelcastInstance hz, final String topic) {
+        return hz.getTopic(topic);
     }
 }

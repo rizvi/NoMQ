@@ -36,8 +36,8 @@ import static org.nomq.core.process.NoMQHelper.sharedTopic;
 public class EventRecorder implements Startable<EventRecorder>, Stoppable {
     private final EventSynchronizer eventSynchronizer;
     private final HazelcastInstance hz;
-    private PlaybackQueueItemListener itemListener;
     private String listenerId;
+    private NoMQMessageListener messageListener;
     private final BlockingQueue<Event> playbackQueue;
     private final EventStore recordEventStore;
     private final String topic;
@@ -67,10 +67,10 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
 
     @Override
     public void stop() {
-        if (itemListener != null) {
-            itemListener.stop();
+        if (messageListener != null) {
+            messageListener.stop();
         }
-        sharedTopic(hz, topic).removeItemListener(listenerId);
+        sharedTopic(hz, topic).removeMessageListener(listenerId);
         listenerId = null;
     }
 
@@ -82,14 +82,14 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
     private void sync() {
         // Start listening to messages and store them in the playback queue. Before the queue has caught up the events are
         // stored in a temp playback queue.
-        itemListener = new PlaybackQueueItemListener(recordEventStore, playbackQueue);
-        listenerId = sharedTopic(hz, topic).addItemListener(itemListener, true);
+        messageListener = new NoMQMessageListener(recordEventStore, playbackQueue);
+        listenerId = sharedTopic(hz, topic).addMessageListener(messageListener);
 
         // Do the actual sync with the cluster. All processed ids are returned so that they can be removed from the temp queue
         // in the next step.
         final Set<String> processedIds = eventSynchronizer.sync();
 
         // Then sync the item listener as well (if we caught some events between start of sync until now)
-        itemListener.sync(processedIds);
+        messageListener.sync(processedIds);
     }
 }

@@ -16,8 +16,8 @@
 
 package org.nomq.core.process;
 
-import com.hazelcast.core.ItemEvent;
-import com.hazelcast.core.ItemListener;
+import com.hazelcast.core.Message;
+import com.hazelcast.core.MessageListener;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.lifecycle.Stoppable;
@@ -37,7 +37,7 @@ import static org.nomq.core.process.NoMQHelper.isSyncRequest;
  *
  * @author Tommy Wassgren
  */
-class PlaybackQueueItemListener implements ItemListener<Event>, Stoppable {
+class NoMQMessageListener implements MessageListener<Event>, Stoppable {
     private final LockTemplate lockTemplate;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final BlockingQueue<Event> playbackQueue;
@@ -45,7 +45,7 @@ class PlaybackQueueItemListener implements ItemListener<Event>, Stoppable {
     private boolean synced = false;
     private final BlockingQueue<Event> tempPlaybackQueue;
 
-    PlaybackQueueItemListener(final EventStore recordEventStore, final BlockingQueue<Event> playbackQueue) {
+    NoMQMessageListener(final EventStore recordEventStore, final BlockingQueue<Event> playbackQueue) {
         this.recordEventStore = recordEventStore;
         this.playbackQueue = playbackQueue;
         tempPlaybackQueue = new LinkedBlockingQueue<>();
@@ -53,32 +53,21 @@ class PlaybackQueueItemListener implements ItemListener<Event>, Stoppable {
     }
 
     @Override
-    public void itemAdded(final ItemEvent<Event> event) {
+    public void onMessage(final Message<Event> eventMessage) {
         lockTemplate.lock(() -> {
+            final Event event = eventMessage.getMessageObject();
             if (synced) {
-                if (event.getItem() != null) {
-                    log.debug("Recording event [id={}]", event.getItem().id());
-
-                    recordEventStore.append(event.getItem());
-
-                    if (!isSyncRequest(event.getItem())) {
-                        playbackQueue.add(event.getItem());
-                    }
+                log.debug("Recording event [id={}]", event.id());
+                recordEventStore.append(eventMessage.getMessageObject());
+                if (!isSyncRequest(event)) {
+                    playbackQueue.add(event);
                 }
             } else {
-                if (event.getItem() != null) {
-                    if (!isSyncRequest(event.getItem())) {
-                        tempPlaybackQueue.add(event.getItem());
-                    }
+                if (!isSyncRequest(event)) {
+                    tempPlaybackQueue.add(event);
                 }
             }
         });
-    }
-
-    @Override
-    public void itemRemoved(final ItemEvent<Event> item) {
-        // Do nothing
-        log.info("Event [type={}]", item.getEventType());
     }
 
     @Override

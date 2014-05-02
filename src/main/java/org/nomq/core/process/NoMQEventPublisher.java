@@ -17,16 +17,17 @@
 package org.nomq.core.process;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IList;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
+import static org.nomq.core.process.NoMQHelper.createEvent;
+import static org.nomq.core.process.NoMQHelper.generateUuid;
+import static org.nomq.core.process.NoMQHelper.sharedTopic;
 
 /**
- * The event publisher that simply adds messages to the Hazelcast queue.
+ * The event publisher, it simply adds messages to the Hazelcast topic.
  *
  * @author Tommy Wassgren
  */
@@ -45,19 +46,17 @@ public class NoMQEventPublisher implements EventPublisher {
         return publish(create(payload));
     }
 
+    /**
+     * Package protected since sync events can be sent this way.
+     */
     String publish(final Event event) {
         log.debug("Publish event [id={}]", event.id());
-        final IList<Event> q = hz.getList(topic);
-        q.add(event);
+        sharedTopic(hz, topic).publish(event);
         return event.id();
     }
 
     private Event create(final byte[] payload) {
-        return new SerializableEvent(newId(), payload);
-    }
-
-    private String newId() {
-        return UUID.randomUUID().toString();
+        return createEvent(generateUuid(), payload);
     }
 }
 
