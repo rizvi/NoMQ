@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,6 +51,7 @@ public class NoMQBuilderTest {
 
         final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
 
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
         final List<Event> result = new ArrayList<>();
         final NoMQ noMQ = NoMQBuilder.builder()
                 .playback(playbackEventStore)
@@ -60,6 +62,7 @@ public class NoMQBuilderTest {
                 .syncAttempts(4)
                 .syncTimeout(6000)
                 .subscribe(result::add)
+                .subscribe(e -> countDownLatch.countDown())
                 .hazelcast(Hazelcast.newHazelcastInstance())
                 .build()
                 .start();
@@ -68,14 +71,13 @@ public class NoMQBuilderTest {
         noMQ.publish("Simple event".getBytes());
 
         // Wait for the message to be delivered
-        Thread.sleep(500);
+        countDownLatch.await();
 
         // Then
         assertEquals(1, result.size());
 
         // Cleanup
         noMQ.stop();
-        Hazelcast.shutdownAll();
     }
 
     @Test
@@ -84,11 +86,13 @@ public class NoMQBuilderTest {
         final Path recordFolder = Files.createTempDirectory("org.nomq.test");
         final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
 
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
         final List<Event> result = new ArrayList<>();
         final NoMQ noMQ = NoMQBuilder.builder()
                 .playback(playbackFolder.toString())
                 .record(recordFolder.toString())
                 .subscribe(result::add)
+                .subscribe(e -> countDownLatch.countDown())
                 .build()
                 .start();
 
@@ -96,14 +100,13 @@ public class NoMQBuilderTest {
         noMQ.publish("Simple event".getBytes());
 
         // Wait for the message to be delivered
-        Thread.sleep(200);
+        countDownLatch.await();
 
         // Then
         assertEquals(1, result.size());
 
         // Cleanup
         noMQ.stop();
-        Hazelcast.shutdownAll();
     }
 
     @Test
@@ -114,11 +117,13 @@ public class NoMQBuilderTest {
 
         final List<Event> result1 = new ArrayList<>();
         final List<Event> result2 = new ArrayList<>();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
         final NoMQ noMQ = NoMQBuilder.builder()
                 .playback(playbackFolder.toString())
                 .record(recordFolder.toString())
                 .subscribe(result1::add)
                 .subscribe(result2::add)
+                .subscribe(e -> countDownLatch.countDown())
                 .build()
                 .start();
 
@@ -126,7 +131,7 @@ public class NoMQBuilderTest {
         noMQ.publish("Simple event".getBytes());
 
         // Wait for the message to be delivered
-        Thread.sleep(500);
+        countDownLatch.await();
 
         // Then - Assert that both subscribers were notified.
         assertEquals(1, result1.size());
@@ -134,6 +139,5 @@ public class NoMQBuilderTest {
 
         // Cleanup
         noMQ.stop();
-        Hazelcast.shutdownAll();
     }
 }

@@ -16,16 +16,14 @@
 
 package org.nomq.core.performance;
 
-import org.nomq.core.Event;
 import org.nomq.core.NoMQ;
-import org.nomq.core.process.JournalEventStore;
 import org.nomq.core.setup.NoMQBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author Tommy Wassgren
@@ -41,38 +39,25 @@ public class PerformanceTest {
         final NoMQ noMQ1 = NoMQBuilder.builder()
                 .record(tempFolder())
                 .playback(tempFolder())
-
                 .build()
                 .start();
 
-        final AtomicInteger counter = new AtomicInteger(1);
-        final JournalEventStore recordEventStore = new JournalEventStore(tempFolder().toString()) {
-            @Override
-            public void append(final Event event) {
-                super.append(event);
-                counter.incrementAndGet();
-            }
-        };
-
+        final int nrOfEvents = 100000;
+        final CountDownLatch countDownLatch = new CountDownLatch(nrOfEvents);
         final NoMQ noMQ2 = NoMQBuilder.builder()
-                .record(recordEventStore)
+                .record(tempFolder())
                 .playback(tempFolder())
+                .subscribe(e -> countDownLatch.countDown())
                 .build()
                 .start();
 
         final long start = System.currentTimeMillis();
-        final int nrOfEvents = 100000;
         for (int i = 0; i < nrOfEvents; i++) {
             noMQ1.publish(("Payload #" + Integer.toString(i)).getBytes());
         }
-
         final long publishCompleted = System.currentTimeMillis();
-        while (true) {
-            Thread.sleep(50);
-            if (counter.get() >= nrOfEvents) {
-                break;
-            }
-        }
+
+        countDownLatch.await();
         final long receiveCompleted = System.currentTimeMillis();
 
         noMQ1.stop();

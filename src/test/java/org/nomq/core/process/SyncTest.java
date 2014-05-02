@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Tests various aspects of syncing.
@@ -38,6 +39,7 @@ public class SyncTest {
 
     @Test
     public void testSyncWhenMasterListIsEmpty() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
         // Given
         final JournalEventStore r1 = new JournalEventStore(tempFolder());
 
@@ -46,13 +48,13 @@ public class SyncTest {
                 .hazelcast(hz1)
                 .record(r1)
                 .playback(tempFolder())
+                .subscribe(e -> countDownLatch.countDown())
                 .build()
                 .start();
 
         publish(noMQ1, "m1");
         publish(noMQ1, "m2");
-
-        Thread.sleep(500);
+        countDownLatch.await();
         Assert.assertEquals(2, r1.replayAll().count());
 
         // Okay, now the messages have been published and handled by the the first instance.

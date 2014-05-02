@@ -25,6 +25,7 @@ import org.nomq.core.setup.NoMQBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -35,11 +36,13 @@ import static org.junit.Assert.assertNotNull;
 public class EventPublisherTest {
     @Test
     public void testSimplePubSubWithMultipleHazelcastInstances() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
         final EventStore playbackEventStore = newEventStore();
 
         final NoMQ noMQ1 = NoMQBuilder.builder()
                 .record(newEventStore())
                 .playback(playbackEventStore)
+                .subscribe(e -> countDownLatch.countDown())
                 .build()
                 .start();
 
@@ -52,8 +55,8 @@ public class EventPublisherTest {
         noMQ2.publish(create("payload1"));
         noMQ2.publish(create("payload2"));
 
-        // Wait a while to allow for the player to process the events
-        Thread.sleep(500);
+        // Wait for the messages
+        countDownLatch.await();
 
         // Assertions
         assertEquals(2, playbackEventStore.replayAll().count());
