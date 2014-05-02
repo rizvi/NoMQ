@@ -1,10 +1,11 @@
+# NoMQ
 __NoMQ__ is short for _Not a Message Queue_. It is a distributed event queue that is based on Java 8 and Hazelcast. NoMQ requires
 __NO__ installation, simply add the jar to your project.
 
-# Prerequisites
+## Prerequisites
 * Java 8
 
-# Features
+## Features
  * __durability:__ events survive reboots
  * __late join:__ new nodes can join later on
  * __ordering:__ events are delivered in the same order on all nodes
