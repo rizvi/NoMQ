@@ -15,13 +15,12 @@
   ~  limitations under the License.
   -->
 
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.nomq</groupId>
     <artifactId>nomq-core</artifactId>
-    <version>0.3-SNAPSHOT</version>
+    <version>0.3</version>
     <packaging>jar</packaging>
 
     <issueManagement>
@@ -38,7 +37,7 @@
         <connection>scm:git:git@github.com:wassgren/NoMQ.git</connection>
         <url>scm:git:git@github.com:wassgren/NoMQ.git</url>
         <developerConnection>scm:git:git@github.com:wassgren/NoMQ.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>nomq-core-0.3</tag>
     </scm>
 
     <url>http://www.nomq.org</url>
