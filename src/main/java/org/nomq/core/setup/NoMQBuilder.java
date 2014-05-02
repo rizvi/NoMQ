@@ -18,6 +18,7 @@
 package org.nomq.core.setup;
 
 import com.hazelcast.config.Config;
+import com.hazelcast.config.TopicConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
@@ -227,6 +228,7 @@ public final class NoMQBuilder {
      * @see #hazelcast(com.hazelcast.config.Config)
      */
     public NoMQBuilder hazelcast(final HazelcastInstance hz) {
+        hz.getConfig().addTopicConfig(topicConfig());
         this.hz = hz;
         return this;
     }
@@ -239,6 +241,7 @@ public final class NoMQBuilder {
      * @see #hazelcast(HazelcastInstance)
      */
     public NoMQBuilder hazelcast(final Config config) {
+        config.addTopicConfig(topicConfig());
         this.hz = Hazelcast.newHazelcastInstance(config);
         return this;
     }
@@ -430,5 +433,13 @@ public final class NoMQBuilder {
             topic = DEFAULT_TOPIC;
         }
         return topic;
+    }
+
+    private TopicConfig topicConfig() {
+        final TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setGlobalOrderingEnabled(true);
+        topicConfig.setStatisticsEnabled(true);
+        topicConfig.setName(topic());
+        return topicConfig;
     }
 }

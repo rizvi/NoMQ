@@ -21,11 +21,15 @@ import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
 import org.nomq.core.setup.NoMQBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -34,6 +38,56 @@ import static org.junit.Assert.assertNotNull;
  * @author Tommy Wassgren
  */
 public class EventPublisherTest {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    @Test
+    public void testMultiplePublishers() throws IOException, InterruptedException {
+        final int nrOfMessages = 10000;
+        final CountDownLatch countDownLatch = new CountDownLatch(nrOfMessages);
+
+        final EventStore p1 = newEventStore();
+        final NoMQ noMQ1 = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(p1)
+                .subscribe(e -> countDownLatch.countDown())
+                .build()
+                .start();
+
+        final EventStore p2 = newEventStore();
+        final NoMQ noMQ2 = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(p2)
+                .build()
+                .start();
+
+        new Thread(() -> {
+            for (int i = 0; i < nrOfMessages / 2; i++) {
+                if (i % 500 == 0) {
+                    Thread.yield();
+                }
+                noMQ1.publish(create("m1"));
+            }
+        }).start();
+
+        new Thread(() -> {
+            for (int i = 0; i < nrOfMessages / 2; i++) {
+                if (i % 500 == 0) {
+                    Thread.yield();
+                }
+                noMQ2.publish(create("m2"));
+            }
+        }).start();
+
+        // Wait for the messages (and also make sure that all messages have arrived)
+        countDownLatch.await();
+
+        assertStores(p1, p2);
+
+        // Cleanup
+        noMQ1.stop();
+        noMQ2.stop();
+    }
+
     @Test
     public void testSimplePubSubWithMultipleHazelcastInstances() throws IOException, InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
@@ -69,6 +123,16 @@ public class EventPublisherTest {
         noMQ2.stop();
     }
 
+    private void assertStores(final EventStore s1, final EventStore s2) {
+        final long start = System.currentTimeMillis();
+        final List<String> l1 = s1.replayAll().map(e -> e.id()).collect(Collectors.toList());
+        final List<String> l2 = s2.replayAll().map(e -> e.id()).collect(Collectors.toList());
+        final long stop = System.currentTimeMillis();
+
+        log.info("Replay took {}ms", (stop - start));
+        assertEquals(l1, l2);
+
+    }
 
     private byte[] create(final String payload) {
         return payload.getBytes();
