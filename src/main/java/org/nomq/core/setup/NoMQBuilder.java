@@ -93,7 +93,7 @@ public final class NoMQBuilder {
     /**
      * The internal implementation of the NoMQ-system.
      */
-    private static class NoMQSystem implements NoMQ {
+    private static class NoMQImpl implements NoMQ {
         private final HazelcastInstance hz;
         private final Logger log = LoggerFactory.getLogger(getClass());
         private final EventStore playbackEventStore;
@@ -102,7 +102,7 @@ public final class NoMQBuilder {
         private final EventStore recordEventStore;
         private final EventRecorder recorder;
 
-        private NoMQSystem(
+        private NoMQImpl(
                 final HazelcastInstance hz,
                 final EventStore playbackEventStore,
                 final EventStore recordEventStore,
@@ -202,7 +202,7 @@ public final class NoMQBuilder {
 
         final NoMQEventPublisher eventPublisher = new NoMQEventPublisher(topic, hz);
 
-        return new NoMQSystem(
+        return new NoMQImpl(
                 hz,
                 playbackEventStore,
                 recordEventStore,
@@ -435,10 +435,12 @@ public final class NoMQBuilder {
         return topic;
     }
 
+    /**
+     * Creates the topic configuration that enables global ordering.
+     */
     private TopicConfig topicConfig() {
         final TopicConfig topicConfig = new TopicConfig();
         topicConfig.setGlobalOrderingEnabled(true);
-        topicConfig.setStatisticsEnabled(true);
         topicConfig.setName(topic());
         return topicConfig;
     }

@@ -38,7 +38,7 @@ public class SyncTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Test
-    public void testSyncWhenMasterListIsEmpty() throws IOException, InterruptedException {
+    public void verifyThatNewInstancesAreSynced() throws IOException, InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
         // Given
         final JournalEventStore r1 = new JournalEventStore(tempFolder());

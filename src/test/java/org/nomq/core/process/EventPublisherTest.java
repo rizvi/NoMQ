@@ -35,13 +35,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
+ * Various tests for publishing.
+ *
  * @author Tommy Wassgren
  */
 public class EventPublisherTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Test
-    public void testMultiplePublishers() throws IOException, InterruptedException {
+    public void testMultiplePublishersAndVerifyOrder() throws IOException, InterruptedException {
         final int nrOfMessages = 10000;
         final CountDownLatch countDownLatch = new CountDownLatch(nrOfMessages);
 
@@ -125,8 +127,8 @@ public class EventPublisherTest {
 
     private void assertStores(final EventStore s1, final EventStore s2) {
         final long start = System.currentTimeMillis();
-        final List<String> l1 = s1.replayAll().map(e -> e.id()).collect(Collectors.toList());
-        final List<String> l2 = s2.replayAll().map(e -> e.id()).collect(Collectors.toList());
+        final List<String> l1 = s1.replayAll().map(Event::id).collect(Collectors.toList());
+        final List<String> l2 = s2.replayAll().map(Event::id).collect(Collectors.toList());
         final long stop = System.currentTimeMillis();
 
         log.info("Replay took {}ms", (stop - start));

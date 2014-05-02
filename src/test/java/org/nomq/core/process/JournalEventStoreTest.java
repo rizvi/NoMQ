@@ -35,6 +35,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
+ * Tests on the event store.
+ *
  * @author Tommy Wassgren
  */
 public class JournalEventStoreTest {
