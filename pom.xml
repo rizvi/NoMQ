@@ -20,7 +20,7 @@
 
     <groupId>org.nomq</groupId>
     <artifactId>nomq-core</artifactId>
-    <version>0.4</version>
+    <version>0.5-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <issueManagement>
@@ -37,7 +37,7 @@
         <connection>scm:git:git@github.com:wassgren/NoMQ.git</connection>
         <url>scm:git:git@github.com:wassgren/NoMQ.git</url>
         <developerConnection>scm:git:git@github.com:wassgren/NoMQ.git</developerConnection>
-        <tag>nomq-core-0.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <url>http://www.nomq.org</url>
