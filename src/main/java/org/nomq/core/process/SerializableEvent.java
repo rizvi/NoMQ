@@ -21,6 +21,8 @@ import org.nomq.core.Event;
 import java.io.Serializable;
 
 /**
+ * This is the event implementation - it is serializable to work with both journal.io and hazelcast.
+ *
  * @author Tommy Wassgren
  */
 class SerializableEvent implements Event, Serializable {

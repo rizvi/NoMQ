@@ -17,6 +17,8 @@
 package org.nomq.core.process;
 
 /**
+ * Thrown when syncing fails.
+ *
  * @author Tommy Wassgren
  */
 public class SyncFailureException extends Exception {

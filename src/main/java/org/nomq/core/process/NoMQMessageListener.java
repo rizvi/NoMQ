@@ -32,8 +32,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.nomq.core.process.NoMQHelper.isSyncRequest;
 
 /**
- * This item listener feeds the playback queue with all the new entries that are added to the list. During initialization, all
- * events are stored in a temp queue so that the sync-phase can be executed first.
+ * This message listener feeds the playback queue with all the new entries that are added to the list. During initialization,
+ * all events are stored in a temp queue so that the sync-phase can be executed first.
  *
  * @author Tommy Wassgren
  */
