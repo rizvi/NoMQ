@@ -47,7 +47,7 @@ import static org.nomq.core.process.NoMQHelper.lockTemplate;
  * @author Tommy Wassgren
  */
 class EventSynchronizer {
-    private final NoMQEventPublisher eventPublisher;
+    private final EventPublisherSupport eventPublisher;
     private final HazelcastInstance hz;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final int maxSyncAttempts;
@@ -56,7 +56,7 @@ class EventSynchronizer {
     private final long timeout;
     private final String topic;
 
-    EventSynchronizer(final NoMQEventPublisher eventPublisher,
+    EventSynchronizer(final EventPublisherSupport eventPublisher,
                       final BlockingQueue<Event> playbackQueue,
                       final String topic,
                       final HazelcastInstance hz,
@@ -201,7 +201,9 @@ class EventSynchronizer {
 
         // Publish a "sync" event on the real event queue. This id will be used later as a check to see that NoMQ has
         // been completely synced.
-        final String syncRequestId = eventPublisher.publish(createEvent(generateSyncRequestId(recordEventStore)));
+        final String syncRequestId = eventPublisher
+                .publish(createEvent(generateSyncRequestId(recordEventStore)))
+                .id();
 
         // Publish the sync request
         publishSyncRequest(syncRequestId);

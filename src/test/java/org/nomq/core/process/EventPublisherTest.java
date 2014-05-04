@@ -16,6 +16,8 @@
 
 package org.nomq.core.process;
 
+import com.hazelcast.core.Hazelcast;
+import org.junit.Assert;
 import org.junit.Test;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.nomq.core.setup.NoMQBuilder.PublishStrategy.ORDER_MATTERS;
 
 /**
  * Various tests for publishing.
@@ -88,6 +92,88 @@ public class EventPublisherTest {
         // Cleanup
         noMQ1.stop();
         noMQ2.stop();
+    }
+
+    @Test
+    public void testOrderedPubSub() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(newEventStore())
+                .publishStrategy(ORDER_MATTERS)
+                .subscribe(e -> countDownLatch.countDown())
+                .build()
+                .start();
+
+        final Event event1 = noMQ.publish(create("payload1"));
+        final Event event2 = noMQ.publish(create("payload2"));
+
+        // Wait for the messages
+        Assert.assertEquals(new String(event1.payload()), "payload1");
+        Assert.assertEquals(new String(event2.payload()), "payload2");
+
+        countDownLatch.await();
+        noMQ.stop();
+    }
+
+    @Test
+    public void testOrderedPubSubAsync() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
+
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(newEventStore())
+                .publishStrategy(ORDER_MATTERS)
+                .build()
+                .start();
+
+        noMQ.publish(create("payload1"), e -> countDownLatch.countDown());
+        noMQ.publish(create("payload2"), e -> countDownLatch.countDown());
+
+        // Wait for the messages
+        countDownLatch.await();
+
+        noMQ.stop();
+    }
+
+    @Test
+    public void testSimplePubSubAsync() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
+
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(newEventStore())
+                .build()
+                .start();
+
+        noMQ.publish(create("payload1"), e -> countDownLatch.countDown());
+        noMQ.publish(create("payload2"), e -> countDownLatch.countDown());
+
+        // Wait for the messages
+        countDownLatch.await();
+
+        noMQ.stop();
+    }
+
+    @Test
+    public void testSimplePubSubWithFailureAsync() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
+
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(newEventStore())
+                .build()
+                .start();
+
+        Hazelcast.shutdownAll();
+
+        noMQ.publish(create("payload1"), e -> fail("Should not be possible"), thr -> countDownLatch.countDown());
+        noMQ.publish(create("payload2"), e -> fail("Should not be possible"), thr -> countDownLatch.countDown());
+
+        // Wait for the messages
+        countDownLatch.await();
+
+//        noMQ.stop();
     }
 
     @Test

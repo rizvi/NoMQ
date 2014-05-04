@@ -43,7 +43,7 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
     private final String topic;
 
     public EventRecorder(
-            final NoMQEventPublisher eventPublisher,
+            final EventPublisherSupport eventPublisher,
             final BlockingQueue<Event> playbackQueue,
             final String topic,
             final HazelcastInstance hz,

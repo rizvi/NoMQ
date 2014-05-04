@@ -23,15 +23,19 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
+import org.nomq.core.EventPublisherCallback;
 import org.nomq.core.EventStore;
 import org.nomq.core.EventSubscriber;
+import org.nomq.core.ExceptionCallback;
 import org.nomq.core.NoMQ;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
+import org.nomq.core.process.AsyncEventPublisher;
 import org.nomq.core.process.EventPlayer;
+import org.nomq.core.process.EventPublisherSupport;
 import org.nomq.core.process.EventRecorder;
 import org.nomq.core.process.JournalEventStore;
-import org.nomq.core.process.NoMQEventPublisher;
+import org.nomq.core.process.OrderedEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +47,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static org.nomq.core.setup.NoMQBuilder.PublishStrategy.ORDER_DOES_NOT_MATTER;
+
 /**
- * Setup of the NoMQ-system is done via this class. The builder design pattern is used and all the relevant settings can
- * be changed/overridden.
+ * Setup of the NoMQ-system is done via this class. The builder design pattern is used and all the relevant settings can be
+ * changed/overridden.
  *
  * <p>The following components can be specified:
  *
@@ -56,8 +62,8 @@ import java.util.concurrent.ScheduledExecutorService;
  * <strong>Hazelcast</strong>: Various ways of configuring the Hazelcast cluster either via configuration or via a {@link
  * HazelcastInstance}
  *
- * <strong>Topic</strong>: The name of the internal Hazelcast-queue to use. This is only required if multiple
- * NoMQ-instances share the same Hazelcast-instance.
+ * <strong>Topic</strong>: The name of the internal Hazelcast-queue to use. This is only required if multiple NoMQ-instances
+ * share the same Hazelcast-instance.
  *
  * <strong>Executor service</strong>: If a custom thread pool is to be used (e.g. if you have a shared thread pool or similar).
  * If no thread pool is defined a default fixed-size thread pool is created. </p>
@@ -90,6 +96,10 @@ public final class NoMQBuilder {
     public static final long DEFAULT_SYNC_TIMEOUT = 5000;
     public static final int DEFAULT_SYNC_ATTEMPTS = 3;
 
+    public enum PublishStrategy {
+        ORDER_DOES_NOT_MATTER, ORDER_MATTERS
+    }
+
     /**
      * The internal implementation of the NoMQ-system.
      */
@@ -119,8 +129,17 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public String publish(final byte[] payload) {
+        public Event publish(final byte[] payload) {
             return publisher.publish(payload);
+        }
+
+        @Override
+        public void publish(
+                final byte[] payload,
+                final EventPublisherCallback publisherCallback,
+                final ExceptionCallback... exceptionCallbacks) {
+
+            publisher.publish(payload, publisherCallback, exceptionCallbacks);
         }
 
         @Override
@@ -153,7 +172,11 @@ public final class NoMQBuilder {
 
         private void stop(final Object stoppable) {
             if (stoppable instanceof Stoppable) {
-                ((Stoppable) stoppable).stop();
+                try {
+                    ((Stoppable) stoppable).stop();
+                } catch (final Throwable throwable) {
+                    log.error("Error while invoking stop", throwable);
+                }
             }
         }
     }
@@ -164,6 +187,7 @@ public final class NoMQBuilder {
     private int maxSyncAttempts;
     private EventStore playbackEventStore;
     private BlockingQueue<Event> playbackQueue;
+    private PublishStrategy publishStrategy;
     private EventStore recordEventStore;
     private long syncTimeout;
     private String topic;
@@ -199,8 +223,7 @@ public final class NoMQBuilder {
         final EventSubscriber[] eventSubscribers = eventSubscribers();
         final long syncTimeout = syncTimeout();
         final int maxSyncAttempts = syncAttempts();
-
-        final NoMQEventPublisher eventPublisher = new NoMQEventPublisher(topic, hz);
+        final EventPublisherSupport eventPublisher = publisher();
 
         return new NoMQImpl(
                 hz,
@@ -256,7 +279,7 @@ public final class NoMQBuilder {
      * @see #playback(org.nomq.core.EventStore)
      */
     public NoMQBuilder playback(final String folder) {
-        assertWriteableFolder(folder);
+        assertThatFolderIsWriteable(folder);
         this.playbackEventStore = new JournalEventStore(folder);
         return this;
     }
@@ -282,6 +305,20 @@ public final class NoMQBuilder {
     }
 
     /**
+     * Sets the publishing strategy to use - there are two available alternatives: The default option {@link
+     * PublishStrategy#ORDER_DOES_NOT_MATTER} attempts to publish the event ASAP on any available thread. The other option
+     * {@link PublishStrategy#ORDER_MATTERS} uses an event queue and a single thread to publish messages so that they are
+     * guaranteed to be in the order that they are enqueued.
+     *
+     * @param publishStrategy The publishing strategy to use.
+     * @return The builder to allow for further chaining.
+     */
+    public NoMQBuilder publishStrategy(final PublishStrategy publishStrategy) {
+        this.publishStrategy = publishStrategy;
+        return this;
+    }
+
+    /**
      * This sets the folder to use for the record event store. If this value is set the folder must be writeable and the
      * standard event store is used ({@link org.nomq.core.process.JournalEventStore}.
      *
@@ -291,7 +328,7 @@ public final class NoMQBuilder {
      * @see #record(org.nomq.core.EventStore)
      */
     public NoMQBuilder record(final String folder) {
-        assertWriteableFolder(folder);
+        assertThatFolderIsWriteable(folder);
         this.recordEventStore = new JournalEventStore(folder);
         return this;
     }
@@ -349,7 +386,7 @@ public final class NoMQBuilder {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void assertWriteableFolder(final String folder) {
+    private void assertThatFolderIsWriteable(final String folder) {
         final File f = new File(folder);
         f.mkdirs();
         final Path path = f.toPath();
@@ -392,7 +429,7 @@ public final class NoMQBuilder {
 
     private EventStore playback() {
         if (playbackEventStore == null) {
-            assertWriteableFolder(DEFAULT_PLAYBACK_FOLDER);
+            assertThatFolderIsWriteable(DEFAULT_PLAYBACK_FOLDER);
             playbackEventStore = new JournalEventStore(DEFAULT_PLAYBACK_FOLDER);
         }
 
@@ -406,9 +443,21 @@ public final class NoMQBuilder {
         return playbackQueue;
     }
 
+    private PublishStrategy publishStrategy() {
+        return publishStrategy == null ? ORDER_DOES_NOT_MATTER : publishStrategy;
+    }
+
+    private EventPublisherSupport publisher() {
+        switch (publishStrategy()) {
+            case ORDER_MATTERS:
+                return new OrderedEventPublisher(topic(), hazelcast(), executorService());
+        }
+        return new AsyncEventPublisher(topic(), hazelcast(), executorService());
+    }
+
     private EventStore record() {
         if (recordEventStore == null) {
-            assertWriteableFolder(DEFAULT_RECORD_FOLDER);
+            assertThatFolderIsWriteable(DEFAULT_RECORD_FOLDER);
             recordEventStore = new JournalEventStore(DEFAULT_RECORD_FOLDER);
         }
         return recordEventStore;

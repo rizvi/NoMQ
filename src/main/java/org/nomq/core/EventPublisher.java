@@ -21,13 +21,21 @@ package org.nomq.core;
  *
  * @author Tommy Wassgren
  */
-@FunctionalInterface
 public interface EventPublisher {
     /**
-     * Publishes the provided payload to the NoMQ-system.
+     * Publishes the provided payload to the NoMQ-system (synchronously).
      *
      * @param payload The payload that will published with the event.
-     * @return The id of the published event.
+     * @return The published event
      */
-    String publish(byte[] payload);
+    Event publish(byte[] payload);
+
+    /**
+     * Non-blocking version of the {@link #publish(byte[])}-method. The result of the operation is provided to the callback.
+     *
+     * @param payload            The payload that will published with the event.
+     * @param publisherCallback  The callback that will be invoked when the publish has completed.
+     * @param exceptionCallbacks Invoked when an exception occurs.
+     */
+    void publish(byte[] payload, EventPublisherCallback publisherCallback, ExceptionCallback... exceptionCallbacks);
 }

@@ -20,6 +20,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.junit.Assert;
 import org.junit.Test;
+import org.nomq.core.Event;
 import org.nomq.core.NoMQ;
 import org.nomq.core.setup.NoMQBuilder;
 import org.slf4j.Logger;
@@ -77,8 +78,8 @@ public class SyncTest {
     }
 
     private void publish(final NoMQ noMQ, final String message) {
-        final String id = noMQ.publish(message.getBytes());
-        log.debug("Published message [id={}]", id);
+        final Event event = noMQ.publish(message.getBytes());
+        log.debug("Published message [id={}]", event.id());
     }
 
     private String tempFolder() throws IOException {

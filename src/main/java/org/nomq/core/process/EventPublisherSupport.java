@@ -19,44 +19,55 @@ package org.nomq.core.process;
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
+import org.nomq.core.ExceptionCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Arrays.stream;
 import static org.nomq.core.process.NoMQHelper.createEvent;
 import static org.nomq.core.process.NoMQHelper.generateUuid;
 import static org.nomq.core.process.NoMQHelper.sharedTopic;
 
 /**
- * The event publisher, it simply adds messages to the Hazelcast topic.
- *
  * @author Tommy Wassgren
  */
-public class NoMQEventPublisher implements EventPublisher {
+public abstract class EventPublisherSupport implements EventPublisher {
+    private static final ExceptionCallback[] EMPTY_EXCEPTION_CALLBACK = new ExceptionCallback[0];
     private final HazelcastInstance hz;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final String topic;
 
-    public NoMQEventPublisher(final String topic, final HazelcastInstance hz) {
-        this.topic = topic;
+    protected EventPublisherSupport(final String topic, final HazelcastInstance hz) {
         this.hz = hz;
+        this.topic = topic;
     }
 
-    @Override
-    public String publish(final byte[] payload) {
-        return publish(create(payload));
+    protected Event create(final byte[] payload) {
+        return createEvent(generateUuid(), payload);
+    }
+
+    protected HazelcastInstance hazelcastInstance() {
+        return hz;
+    }
+
+    protected ExceptionCallback[] notNull(final ExceptionCallback... exceptionCallbacks) {
+        return exceptionCallbacks == null ? EMPTY_EXCEPTION_CALLBACK : exceptionCallbacks;
+    }
+
+    protected void notifyExceptionHandlers(final Throwable thr, final ExceptionCallback... exceptionCallbacks) {
+        stream(notNull(exceptionCallbacks)).forEach(callback -> callback.onException(thr));
+    }
+
+    protected String topic() {
+        return topic;
     }
 
     /**
      * Package protected since sync events can be sent this way.
      */
-    String publish(final Event event) {
+    Event publish(final Event event) {
         log.debug("Publish event [id={}]", event.id());
-        sharedTopic(hz, topic).publish(event);
-        return event.id();
-    }
-
-    private Event create(final byte[] payload) {
-        return createEvent(generateUuid(), payload);
+        sharedTopic(hazelcastInstance(), topic()).publish(event);
+        return event;
     }
 }
-
