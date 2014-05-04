@@ -16,6 +16,7 @@
 
 package org.nomq.core.performance;
 
+import com.hazelcast.core.Hazelcast;
 import org.nomq.core.EventPublisherTemplate;
 import org.nomq.core.NoMQ;
 import org.nomq.core.setup.NoMQBuilder;
@@ -44,29 +45,35 @@ public class PerformanceTest {
                 .start();
 
         final int nrOfEvents = 100000;
-        final CountDownLatch countDownLatch = new CountDownLatch(nrOfEvents);
+        final CountDownLatch subscriptionCounter = new CountDownLatch(nrOfEvents);
         final NoMQ noMQ2 = NoMQBuilder.builder()
                 .record(tempFolder())
                 .playback(tempFolder())
-                .subscribe(e -> countDownLatch.countDown())
+                .subscribe(e -> subscriptionCounter.countDown())
                 .build()
                 .start();
 
         final long start = System.currentTimeMillis();
 
+        final CountDownLatch publishedCounter = new CountDownLatch(nrOfEvents);
         final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ1);
         for (int i = 0; i < nrOfEvents; i++) {
-            eventPublisherTemplate.publishAsync(("Payload #" + Integer.toString(i)).getBytes());
+            eventPublisherTemplate.publishAsync(
+                    "Payload #" + Integer.toString(i),
+                    s -> s.getBytes(),
+                    e -> publishedCounter.countDown());
         }
+        publishedCounter.countDown();
         final long publishCompleted = System.currentTimeMillis();
 
-        countDownLatch.await();
-        final long receiveCompleted = System.currentTimeMillis();
+        subscriptionCounter.await();
+        final long subscriptionCompleted = System.currentTimeMillis();
 
         noMQ1.stop();
         noMQ2.stop();
 
-        log.info("Performance test completed: [total={}, publish={}]", (receiveCompleted - start), (publishCompleted - start));
+        log.info("Performance test completed: [total={}, publish={}]", (subscriptionCompleted - start), (publishCompleted - start));
+        Hazelcast.shutdownAll();
     }
 
     private String tempFolder() throws IOException {

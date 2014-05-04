@@ -69,7 +69,7 @@ public class EventPublisherTest {
             final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ1);
             for (int i = 0; i < nrOfMessages / 2; i++) {
                 if (i % 500 == 0) {
-                    Thread.yield();
+                    Thread.yield(); // Yield, let the other thread publish
                 }
                 eventPublisherTemplate.publishAndWait(create("m1"));
             }
@@ -79,7 +79,7 @@ public class EventPublisherTest {
             final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ2);
             for (int i = 0; i < nrOfMessages / 2; i++) {
                 if (i % 500 == 0) {
-                    Thread.yield();
+                    Thread.yield(); // Yield, let the other thread publish.
                 }
                 eventPublisherTemplate.publishAndWait(create("m2"));
             }
@@ -137,7 +137,7 @@ public class EventPublisherTest {
     }
 
     @Test
-    public void testSimplePubSubWithMultipleHazelcastInstances() throws IOException, InterruptedException {
+    public void testPubSubWithMultipleHazelcastInstances() throws IOException, InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
         final EventStore playbackEventStore = newEventStore();
 

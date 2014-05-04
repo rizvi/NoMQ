@@ -32,7 +32,6 @@ import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 import org.nomq.core.process.AsyncEventPublisher;
 import org.nomq.core.process.EventPlayer;
-import org.nomq.core.process.EventPublisherSupport;
 import org.nomq.core.process.EventRecorder;
 import org.nomq.core.process.JournalEventStore;
 import org.slf4j.Logger;
@@ -210,7 +209,7 @@ public final class NoMQBuilder {
         final EventSubscriber[] eventSubscribers = eventSubscribers();
         final long syncTimeout = syncTimeout();
         final int maxSyncAttempts = syncAttempts();
-        final EventPublisherSupport eventPublisher = new AsyncEventPublisher(topic, hz, executorService);
+        final AsyncEventPublisher eventPublisher = new AsyncEventPublisher(topic, hz, executorService);
 
         return new NoMQImpl(
                 hz,
@@ -406,7 +405,7 @@ public final class NoMQBuilder {
 
     private ScheduledExecutorService executorService() {
         if (executorService == null) {
-            executorService = Executors.newScheduledThreadPool(3);
+            executorService = Executors.newScheduledThreadPool(5);
         }
         return executorService;
     }
