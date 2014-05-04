@@ -24,7 +24,9 @@ package org.nomq.core;
 @FunctionalInterface
 public interface EventSubscriber {
     /**
-     * Invoked when an event is dispatched to the application.
+     * Invoked when an event is delivered to the application - this is the starting point for event subscribers.
+     *
+     * @param event The event.
      */
     void onEvent(Event event);
 }

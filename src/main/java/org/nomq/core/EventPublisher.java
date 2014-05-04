@@ -31,11 +31,12 @@ public interface EventPublisher {
     Event publish(byte[] payload);
 
     /**
-     * Non-blocking version of the {@link #publish(byte[])}-method. The result of the operation is provided to the callback.
+     * Non-blocking version of the {@link #publish(byte[])}-method. The result of the operation is provided to the callbacks
+     * (success or failure).
      *
      * @param payload            The payload that will published with the event.
-     * @param publisherCallback  The callback that will be invoked when the publish has completed.
-     * @param exceptionCallbacks Invoked when an exception occurs.
+     * @param publisherCallback  Success - the callback that will be invoked when the publish has completed.
+     * @param exceptionCallbacks Failure - invoked when an exception occurs.
      */
     void publish(byte[] payload, EventPublisherCallback publisherCallback, ExceptionCallback... exceptionCallbacks);
 }

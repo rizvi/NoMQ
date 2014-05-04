@@ -28,11 +28,15 @@ import java.util.stream.Stream;
 public interface EventStore {
     /**
      * Append a new event to the end of event store.
+     *
+     * @param event The event to append.
      */
     void append(Event event);
 
     /**
      * Find the latest event that was added to the event store.
+     *
+     * @return The latest event from the event store.
      */
     Optional<Event> latest();
 
@@ -40,11 +44,17 @@ public interface EventStore {
      * Replay all events starting with the event after the provided event id. Example: If the event store contains the events
      * {"1", "2", "3", "4"} and a replay is requested using "2" as the latest processed id the replay stream will contain {"3",
      * "4"}.
+     *
+     * @param latestProcessedId The latest processed id.
+     * @return A stream (possibly empty but never null) that contains all events from the latest processed id (provided as
+     * argument).
      */
     Stream<Event> replay(String latestProcessedId);
 
     /**
      * Replays all events that are stored in this event store.
+     *
+     * @return A stream (possibly empty but never null) that contains all events.
      */
     Stream<Event> replayAll();
 }

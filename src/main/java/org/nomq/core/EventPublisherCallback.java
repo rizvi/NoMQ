@@ -17,9 +17,16 @@
 package org.nomq.core;
 
 /**
+ * When an event is published async this callback is used to capture when the event has actually been published.
+ *
  * @author Tommy Wassgren
  */
 @FunctionalInterface
 public interface EventPublisherCallback {
+    /**
+     * Invoked when an event has been successfully published.
+     *
+     * @param event The published event.
+     */
     void eventPublished(Event event);
 }

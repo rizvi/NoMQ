@@ -17,8 +17,11 @@
 package org.nomq.core;
 
 /**
+ * When an event is published async this callback can be used to capture errors.
+ *
  * @author Tommy Wassgren
  */
+@FunctionalInterface
 public interface ExceptionCallback {
     void onException(Throwable throwable);
 }
