@@ -31,6 +31,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.CompletableFuture.runAsync;
+
 /**
  * The event publisher, it simply adds messages to the Hazelcast topic.
  *
@@ -135,15 +137,12 @@ public class OrderedEventPublisher extends EventPublisherSupport implements Star
 
                     try {
                         final Event publishedEvent = publish(eventToPublish.event());
-
-                        // TODO: Do in separate thread
                         final EventPublisherCallback publisherCallback = eventToPublish.publisherCallback();
                         if (publisherCallback != null) {
-                            publisherCallback.eventPublished(publishedEvent);
+                            runAsync(() -> publisherCallback.eventPublished(publishedEvent));
                         }
                     } catch (Throwable throwable) {
-                        // TODO: Do in separate thread
-                        notifyExceptionHandlers(throwable, eventToPublish.exceptionCallbacks());
+                        runAsync(() -> notifyExceptionHandlers(throwable, eventToPublish.exceptionCallbacks()));
                     }
                 } catch (InterruptedException e) {
                     return;
@@ -160,9 +159,12 @@ public class OrderedEventPublisher extends EventPublisherSupport implements Star
         }
     }
 
-    private void enqueue(final byte[] payload, final EventPublisherCallback publisherCallback, final ExceptionCallback[] exceptionCallbacks) {
-        final Event event = create(payload);
-        outbound.add(new EventWithContext(event, publisherCallback, exceptionCallbacks));
+    private void enqueue(
+            final byte[] payload,
+            final EventPublisherCallback publisherCallback,
+            final ExceptionCallback[] exceptionCallbacks) {
+
+        outbound.add(new EventWithContext(create(payload), publisherCallback, exceptionCallbacks));
     }
 }
 
