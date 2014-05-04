@@ -70,6 +70,10 @@ public class AsyncEventPublisher extends EventPublisherSupport {
 
 
     private CompletableFuture<Event> doPublish(final byte[] payload) {
-        return supplyAsync(() -> create(payload), executorService).thenApplyAsync(this::publish, executorService);
+        return supplyAsync(() -> {
+            Event event = create(payload);
+            publish(event);
+            return event;
+        }, executorService);
     }
 }
