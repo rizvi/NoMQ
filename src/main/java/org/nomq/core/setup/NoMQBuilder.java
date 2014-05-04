@@ -35,7 +35,6 @@ import org.nomq.core.process.EventPlayer;
 import org.nomq.core.process.EventPublisherSupport;
 import org.nomq.core.process.EventRecorder;
 import org.nomq.core.process.JournalEventStore;
-import org.nomq.core.process.OrderedEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +45,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-
-import static org.nomq.core.setup.NoMQBuilder.PublishStrategy.ORDER_DOES_NOT_MATTER;
 
 /**
  * Setup of the NoMQ-system is done via this class. The builder design pattern is used and all the relevant settings can be
@@ -96,10 +93,6 @@ public final class NoMQBuilder {
     public static final long DEFAULT_SYNC_TIMEOUT = 5000;
     public static final int DEFAULT_SYNC_ATTEMPTS = 3;
 
-    public enum PublishStrategy {
-        ORDER_DOES_NOT_MATTER, ORDER_MATTERS
-    }
-
     /**
      * The internal implementation of the NoMQ-system.
      */
@@ -129,17 +122,12 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public Event publish(final byte[] payload) {
-            return publisher.publish(payload);
-        }
-
-        @Override
-        public void publish(
+        public void publishAsync(
                 final byte[] payload,
                 final EventPublisherCallback publisherCallback,
                 final ExceptionCallback... exceptionCallbacks) {
 
-            publisher.publish(payload, publisherCallback, exceptionCallbacks);
+            publisher.publishAsync(payload, publisherCallback, exceptionCallbacks);
         }
 
         @Override
@@ -187,7 +175,6 @@ public final class NoMQBuilder {
     private int maxSyncAttempts;
     private EventStore playbackEventStore;
     private BlockingQueue<Event> playbackQueue;
-    private PublishStrategy publishStrategy;
     private EventStore recordEventStore;
     private long syncTimeout;
     private String topic;
@@ -223,7 +210,7 @@ public final class NoMQBuilder {
         final EventSubscriber[] eventSubscribers = eventSubscribers();
         final long syncTimeout = syncTimeout();
         final int maxSyncAttempts = syncAttempts();
-        final EventPublisherSupport eventPublisher = publisher();
+        final EventPublisherSupport eventPublisher = new AsyncEventPublisher(topic, hz, executorService);
 
         return new NoMQImpl(
                 hz,
@@ -315,20 +302,6 @@ public final class NoMQBuilder {
      */
     public NoMQBuilder playbackQueue(final BlockingQueue<Event> playbackQueue) {
         this.playbackQueue = playbackQueue;
-        return this;
-    }
-
-    /**
-     * Sets the publishing strategy to use - there are two available alternatives: The default option {@link
-     * PublishStrategy#ORDER_DOES_NOT_MATTER} attempts to publish the event ASAP on any available thread. The other option
-     * {@link PublishStrategy#ORDER_MATTERS} uses an event queue and a single thread to publish messages so that they are
-     * guaranteed to be in the order that they are enqueued.
-     *
-     * @param publishStrategy The publishing strategy to use.
-     * @return The builder to allow for further chaining.
-     */
-    public NoMQBuilder publishStrategy(final PublishStrategy publishStrategy) {
-        this.publishStrategy = publishStrategy;
         return this;
     }
 
@@ -471,17 +444,6 @@ public final class NoMQBuilder {
         return playbackQueue;
     }
 
-    private PublishStrategy publishStrategy() {
-        return publishStrategy == null ? ORDER_DOES_NOT_MATTER : publishStrategy;
-    }
-
-    private EventPublisherSupport publisher() {
-        switch (publishStrategy()) {
-            case ORDER_MATTERS:
-                return new OrderedEventPublisher(topic(), hazelcast(), executorService());
-        }
-        return new AsyncEventPublisher(topic(), hazelcast(), executorService());
-    }
 
     private EventStore record() {
         if (recordEventStore == null) {

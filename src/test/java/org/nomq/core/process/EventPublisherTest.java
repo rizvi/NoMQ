@@ -17,9 +17,9 @@
 package org.nomq.core.process;
 
 import com.hazelcast.core.Hazelcast;
-import org.junit.Assert;
 import org.junit.Test;
 import org.nomq.core.Event;
+import org.nomq.core.EventPublisherTemplate;
 import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
 import org.nomq.core.setup.NoMQBuilder;
@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.nomq.core.setup.NoMQBuilder.PublishStrategy.ORDER_MATTERS;
 
 /**
  * Various tests for publishing.
@@ -47,7 +46,7 @@ public class EventPublisherTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Test
-    public void testMultiplePublishersAndVerifyOrder() throws IOException, InterruptedException {
+    public void testMultiplePublishersAndVerifyOrderOfMessages() throws IOException, InterruptedException {
         final int nrOfMessages = 10000;
         final CountDownLatch countDownLatch = new CountDownLatch(nrOfMessages);
 
@@ -67,20 +66,22 @@ public class EventPublisherTest {
                 .start();
 
         new Thread(() -> {
+            final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ1);
             for (int i = 0; i < nrOfMessages / 2; i++) {
                 if (i % 500 == 0) {
                     Thread.yield();
                 }
-                noMQ1.publish(create("m1"));
+                eventPublisherTemplate.publishAndWait(create("m1"));
             }
         }).start();
 
         new Thread(() -> {
+            final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ2);
             for (int i = 0; i < nrOfMessages / 2; i++) {
                 if (i % 500 == 0) {
                     Thread.yield();
                 }
-                noMQ2.publish(create("m2"));
+                eventPublisherTemplate.publishAndWait(create("m2"));
             }
         }).start();
 
@@ -95,40 +96,17 @@ public class EventPublisherTest {
     }
 
     @Test
-    public void testOrderedPubSub() throws IOException, InterruptedException {
-        final CountDownLatch countDownLatch = new CountDownLatch(2);
-        final NoMQ noMQ = NoMQBuilder.builder()
-                .record(newEventStore())
-                .playback(newEventStore())
-                .publishStrategy(ORDER_MATTERS)
-                .subscribe(e -> countDownLatch.countDown())
-                .build()
-                .start();
-
-        final Event event1 = noMQ.publish(create("payload1"));
-        final Event event2 = noMQ.publish(create("payload2"));
-
-        // Wait for the messages
-        Assert.assertEquals(new String(event1.payload()), "payload1");
-        Assert.assertEquals(new String(event2.payload()), "payload2");
-
-        countDownLatch.await();
-        noMQ.stop();
-    }
-
-    @Test
-    public void testOrderedPubSubAsync() throws IOException, InterruptedException {
+    public void testPubSubAsync() throws IOException, InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
 
         final NoMQ noMQ = NoMQBuilder.builder()
                 .record(newEventStore())
                 .playback(newEventStore())
-                .publishStrategy(ORDER_MATTERS)
                 .build()
                 .start();
 
-        noMQ.publish(create("payload1"), e -> countDownLatch.countDown());
-        noMQ.publish(create("payload2"), e -> countDownLatch.countDown());
+        noMQ.publishAsync(create("payload1"), e -> countDownLatch.countDown());
+        noMQ.publishAsync(create("payload2"), e -> countDownLatch.countDown());
 
         // Wait for the messages
         countDownLatch.await();
@@ -137,7 +115,7 @@ public class EventPublisherTest {
     }
 
     @Test
-    public void testSimplePubSubAsync() throws IOException, InterruptedException {
+    public void testPubSubWithFailureAsync() throws IOException, InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
 
         final NoMQ noMQ = NoMQBuilder.builder()
@@ -146,34 +124,16 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ.publish(create("payload1"), e -> countDownLatch.countDown());
-        noMQ.publish(create("payload2"), e -> countDownLatch.countDown());
-
-        // Wait for the messages
-        countDownLatch.await();
-
-        noMQ.stop();
-    }
-
-    @Test
-    public void testSimplePubSubWithFailureAsync() throws IOException, InterruptedException {
-        final CountDownLatch countDownLatch = new CountDownLatch(2);
-
-        final NoMQ noMQ = NoMQBuilder.builder()
-                .record(newEventStore())
-                .playback(newEventStore())
-                .build()
-                .start();
-
+        // Closing hazelcast causes publishing to fail
         Hazelcast.shutdownAll();
 
-        noMQ.publish(create("payload1"), e -> fail("Should not be possible"), thr -> countDownLatch.countDown());
-        noMQ.publish(create("payload2"), e -> fail("Should not be possible"), thr -> countDownLatch.countDown());
+        noMQ.publishAsync(create("payload1"), e -> fail("Should not be possible"), thr -> countDownLatch.countDown());
+        noMQ.publishAsync(create("payload2"), e -> fail("Should not be possible"), thr -> countDownLatch.countDown());
 
         // Wait for the messages
         countDownLatch.await();
 
-//        noMQ.stop();
+        noMQ.stop();
     }
 
     @Test
@@ -194,8 +154,9 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ2.publish(create("payload1"));
-        noMQ2.publish(create("payload2"));
+        final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ2);
+        eventPublisherTemplate.publishAndWait("payload1", i -> i.getBytes());
+        eventPublisherTemplate.publishAndWait("payload2", i -> i.getBytes());
 
         // Wait for the messages
         countDownLatch.await();

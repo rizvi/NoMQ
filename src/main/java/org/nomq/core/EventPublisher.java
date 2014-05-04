@@ -23,20 +23,13 @@ package org.nomq.core;
  */
 public interface EventPublisher {
     /**
-     * Publishes the provided payload to the NoMQ-system (synchronously).
-     *
-     * @param payload The payload that will published with the event.
-     * @return The published event
-     */
-    Event publish(byte[] payload);
-
-    /**
-     * Non-blocking version of the {@link #publish(byte[])}-method. The result of the operation is provided to the callbacks
-     * (success or failure).
+     * Publishes the provided payload to the NoMQ-system (asynchronously). This method is non blocking, to publish events in
+     * blocking way use the EventPublisherTemplate. The result of the operation is provided to the callbacks (success or
+     * failure).
      *
      * @param payload            The payload that will published with the event.
      * @param publisherCallback  Success - the callback that will be invoked when the publish has completed.
      * @param exceptionCallbacks Failure - invoked when an exception occurs.
      */
-    void publish(byte[] payload, EventPublisherCallback publisherCallback, ExceptionCallback... exceptionCallbacks);
+    void publishAsync(byte[] payload, EventPublisherCallback publisherCallback, ExceptionCallback... exceptionCallbacks);
 }

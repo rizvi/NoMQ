@@ -16,6 +16,7 @@
 
 package org.nomq.core.performance;
 
+import org.nomq.core.EventPublisherTemplate;
 import org.nomq.core.NoMQ;
 import org.nomq.core.setup.NoMQBuilder;
 import org.slf4j.Logger;
@@ -52,8 +53,10 @@ public class PerformanceTest {
                 .start();
 
         final long start = System.currentTimeMillis();
+
+        final EventPublisherTemplate eventPublisherTemplate = new EventPublisherTemplate(noMQ1);
         for (int i = 0; i < nrOfEvents; i++) {
-            noMQ1.publish(("Payload #" + Integer.toString(i)).getBytes());
+            eventPublisherTemplate.publishAsync(("Payload #" + Integer.toString(i)).getBytes());
         }
         final long publishCompleted = System.currentTimeMillis();
 

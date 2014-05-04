@@ -22,12 +22,13 @@ import org.nomq.core.EventPublisherCallback;
 import org.nomq.core.ExceptionCallback;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 /**
+ * This event publisher uses {@link CompletableFuture} for async requests
+ *
  * @author Tommy Wassgren
  */
 public class AsyncEventPublisher extends EventPublisherSupport {
@@ -36,23 +37,10 @@ public class AsyncEventPublisher extends EventPublisherSupport {
     public AsyncEventPublisher(final String topic, final HazelcastInstance hz, final ExecutorService executorService) {
         super(topic, hz);
         this.executorService = executorService;
-
     }
 
     @Override
-    public Event publish(final byte[] payload) {
-        final CompletableFuture<Event> future = doPublish(payload);
-        try {
-            return future.get();
-        } catch (final InterruptedException e) {
-            throw new IllegalStateException("Publishing interrupted", e);
-        } catch (final ExecutionException e) {
-            throw new IllegalStateException("Unable to publish message", e.getCause());
-        }
-    }
-
-    @Override
-    public void publish(
+    public void publishAsync(
             final byte[] payload,
             final EventPublisherCallback publisherCallback,
             final ExceptionCallback... exceptionCallbacks) {
