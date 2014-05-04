@@ -25,6 +25,75 @@ import org.nomq.core.lifecycle.Stoppable;
  *
  * @author Tommy Wassgren
  */
-public interface NoMQ extends Startable<NoMQ>, Stoppable, EventPublisher {
-    // No additional methods added here - publishing and lifecycle is all that is required.
+public interface NoMQ extends Startable<NoMQ>, Stoppable {
+
+    /**
+     * Blocking version of the {@link #publishAsync(byte[])}-method. This methods blocks until the event has been published.
+     *
+     * @param payload The payload to publish
+     * @return The published event
+     */
+    Event publishAndWait(final byte[] payload);
+
+    /**
+     * Blocking version of the {@link #publishAsync(Object, Converter)}-method. The method blocks until the event has been
+     * published.
+     *
+     * The object to be published can be of any type, it will be converted to a byte array via the provided {@link Converter}.
+     *
+     * @param payloadObject The payload object.
+     * @param converter     The converter to use (converts to a byte array).
+     * @return The published event
+     */
+    <T> Event publishAndWait(final T payloadObject, final Converter<T, byte[]> converter);
+
+    /**
+     * Publishes the payload to the NoMQ-system (asynchronously). This is the same as using the {@link #publishAsync(byte[],
+     * EventPublisherCallback, ExceptionCallback...)}-method with empty callbacks.
+     *
+     * @param payload The payload to publish.
+     */
+    void publishAsync(final byte[] payload);
+
+    /**
+     * A non-blocking method for publishing a payload object of any type without any callbacks. This is pretty much the same as
+     * using the standard {@link #publishAsync(byte[], EventPublisherCallback, ExceptionCallback...)}-method with
+     * noop-callbacks.
+     *
+     * The object to be published can be of any type and it will be converted to a byte array via the provided {@link
+     * Converter}.
+     *
+     * @param payloadObject The payload object to publish.
+     * @param converter     The converter.
+     */
+    <T> void publishAsync(T payloadObject, Converter<T, byte[]> converter);
+
+    /**
+     * A non-blocking method for publishing a payload object of any type. The payload object will be converted to a byte array
+     * via the provided {@link Converter}. The result of the operation is returned via callbacks (success or failure).
+     *
+     * @param payloadObject      The payload object to publish.
+     * @param converter          The converter responsible for converting the payload object to a byte array.
+     * @param publisherCallback  The success callback, invoked when publishing has completed
+     * @param exceptionCallbacks The failure callbacks, invoked if publishing fails
+     */
+    <T> void publishAsync(
+            T payloadObject,
+            Converter<T, byte[]> converter,
+            EventPublisherCallback publisherCallback,
+            ExceptionCallback... exceptionCallbacks);
+
+
+    /**
+     * A non-blocking method for publishing a payload object of any type. The payload object will be converted to a byte array
+     * via the provided {@link Converter}. The result of the operation is returned via callbacks (success or failure).
+     *
+     * @param payload            The payload to publish.
+     * @param publisherCallback  The success callback, invoked when publishing has completed
+     * @param exceptionCallbacks The failure callbacks, invoked if publishing fails
+     */
+    <T> void publishAsync(
+            byte[] payload,
+            EventPublisherCallback publisherCallback,
+            ExceptionCallback... exceptionCallbacks);
 }

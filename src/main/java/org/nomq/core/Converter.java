@@ -17,18 +17,9 @@
 package org.nomq.core;
 
 /**
- * Publish events to the NoMQ-system.
- *
  * @author Tommy Wassgren
  */
-public interface EventPublisher {
-    /**
-     * Publishes the provided payload to the NoMQ-system (asynchronously). The result of the operation is provided to the
-     * callbacks (success or failure).
-     *
-     * @param payload            The payload that will published with the event.
-     * @param publisherCallback  Success - the callback that will be invoked when the publish has completed.
-     * @param exceptionCallbacks Failure - invoked when an exception occurs.
-     */
-    void publishAsync(byte[] payload, EventPublisherCallback publisherCallback, ExceptionCallback... exceptionCallbacks);
+@FunctionalInterface
+public interface Converter<I, O> {
+    O convert(I input);
 }

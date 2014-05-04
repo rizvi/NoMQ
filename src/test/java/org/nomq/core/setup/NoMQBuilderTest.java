@@ -19,7 +19,6 @@ package org.nomq.core.setup;
 import com.hazelcast.core.Hazelcast;
 import org.junit.Test;
 import org.nomq.core.Event;
-import org.nomq.core.EventPublisherTemplate;
 import org.nomq.core.NoMQ;
 import org.nomq.core.process.JournalEventStore;
 
@@ -69,7 +68,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        new EventPublisherTemplate(noMQ).publishAndWait("Simple event", payload -> payload.getBytes());
+        noMQ.publishAndWait("Simple event", s -> s.getBytes());
 
         // Wait for the message to be delivered
         countDownLatch.await();
@@ -98,7 +97,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        new EventPublisherTemplate(noMQ).publishAndWait("Simple event".getBytes());
+        noMQ.publishAndWait("Simple event", s -> s.getBytes());
 
         // Wait for the message to be delivered
         countDownLatch.await();
@@ -129,7 +128,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        new EventPublisherTemplate(noMQ).publishAndWait("Simple event".getBytes());
+        noMQ.publishAndWait("Simple event", s -> s.getBytes());
 
         // Wait for the message to be delivered
         countDownLatch.await();

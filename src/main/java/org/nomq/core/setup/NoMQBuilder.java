@@ -21,6 +21,7 @@ import com.hazelcast.config.Config;
 import com.hazelcast.config.TopicConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.nomq.core.Converter;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisher;
 import org.nomq.core.EventPublisherCallback;
@@ -41,6 +42,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -96,6 +98,26 @@ public final class NoMQBuilder {
      * The internal implementation of the NoMQ-system.
      */
     private static class NoMQImpl implements NoMQ {
+        private static class PublishResult {
+            private Event event;
+            private Throwable throwable;
+
+            public void failure(final Throwable throwable) {
+                this.throwable = throwable;
+            }
+
+            public Event returnOrThrow() {
+                if (throwable != null) {
+                    throw new IllegalStateException(throwable);
+                }
+                return event;
+            }
+
+            public void success(final Event event) {
+                this.event = event;
+            }
+        }
+
         private final HazelcastInstance hz;
         private final Logger log = LoggerFactory.getLogger(getClass());
         private final EventStore playbackEventStore;
@@ -121,11 +143,60 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public void publishAsync(
-                final byte[] payload,
+        public Event publishAndWait(final byte[] payload) {
+            final CountDownLatch latch = new CountDownLatch(1);
+            final PublishResult result = new PublishResult();
+
+            publishAsync(
+                    payload,
+                    (EventPublisherCallback) event -> {
+                        result.success(event);
+                        latch.countDown();
+
+                    },
+                    throwable -> {
+                        result.failure(throwable);
+                        latch.countDown();
+                    }
+            );
+            try {
+                latch.await();
+                return result.returnOrThrow();
+            } catch (final InterruptedException e) {
+                throw new IllegalStateException("Publishing interrupted", e);
+            }
+        }
+
+        @Override
+        public <T> Event publishAndWait(final T payloadObject, final Converter<T, byte[]> converter) {
+            return publishAndWait(converter.convert(payloadObject));
+        }
+
+        @Override
+        public void publishAsync(final byte[] payload) {
+            // No conversion (p->p), simply use the provided payload
+            publishAsync(payload, p -> p);
+        }
+
+
+        @Override
+        public <T> void publishAsync(final T payloadObject, final Converter<T, byte[]> converter) {
+            // Use the provided converter and use a noop callback
+            publishAsync(payloadObject, converter, e -> { /* Do nothing */ });
+        }
+
+        @Override
+        public <T> void publishAsync(
+                final T payloadObject,
+                final Converter<T, byte[]> converter,
                 final EventPublisherCallback publisherCallback,
                 final ExceptionCallback... exceptionCallbacks) {
 
+            publishAsync(converter.convert(payloadObject), publisherCallback, exceptionCallbacks);
+        }
+
+        @Override
+        public <T> void publishAsync(final byte[] payload, final EventPublisherCallback publisherCallback, final ExceptionCallback... exceptionCallbacks) {
             publisher.publishAsync(payload, publisherCallback, exceptionCallbacks);
         }
 
@@ -178,6 +249,11 @@ public final class NoMQBuilder {
     private long syncTimeout;
     private String topic;
 
+    /**
+     * Creates this builder.
+     *
+     * @return The builder.
+     */
     public static NoMQBuilder builder() {
         return new NoMQBuilder();
     }
