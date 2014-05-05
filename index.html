@@ -29,10 +29,11 @@
       </header>
       <section>
         <h1>
-<a name="nomq" class="anchor" href="#nomq"><span class="octicon octicon-link"></span></a>NoMQ</h1>
+<a name="nomq-" class="anchor" href="#nomq-"><span class="octicon octicon-link"></span></a>NoMQ <a href="http://travis-ci.org/wassgren/NoMQ"><img src="https://secure.travis-ci.org/wassgren/NoMQ.png" alt="build status"></a>
+</h1>
 
-<p><strong>NoMQ</strong> is short for <em>Not a Message Queue</em>. It is a distributed event queue that is based on Java 8 and Hazelcast. NoMQ requires
-<strong>NO</strong> installation, simply add the jar to your project.</p>
+<p><strong>NoMQ</strong> is short for <em>Not a Message Queue</em>. It is a distributed event queue that is based on Java 8 and Hazelcast. NoMQ
+requires <strong>NO</strong> installation, simply add the jar to your project.</p>
 
 <h2>
 <a name="prerequisites" class="anchor" href="#prerequisites"><span class="octicon octicon-link"></span></a>Prerequisites</h2>
@@ -51,37 +52,68 @@
 <strong>ordering:</strong> events are delivered in the same order on all nodes</li>
 <li>
 <strong>no additional installation required:</strong> simply include the jars and configure NoMQ from within your Java-code.</li>
-</ul><h1>
-<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting started</h1>
+</ul><h2>
+<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting started</h2>
 
-<p>If you want to subscribe for events in the NoMQ cluster you need to register an <em>EventSubscriber</em>. The following code starts a
-NoMQ instance and registers an event subscriber that simply echoes the event id on System.out. Events can be published by any
+<p>Triggering an event requires a handle to the NoMQ-instance, a payload that is sent to all subscribers and a name of the event
+known as the event type.</p>
+
+<p>If you want to subscribe to events in the NoMQ cluster you need to register an <em>EventSubscriber</em>. The following code starts a
+NoMQ-instance and registers an event subscriber that simply echoes the event id on <em>System.out</em>. Events can be published by any
 node in the cluster, they will arrive at all event subscribers in the same order.</p>
 
-<div class="highlight highlight-java"><pre><span class="n">NoMQ</span> <span class="n">noMQ</span> <span class="o">=</span> <span class="n">NoMQBuilder</span><span class="o">.</span><span class="na">builder</span><span class="o">()</span>               <span class="c1">// Obtain a reference to the builder</span>
-    <span class="o">.</span><span class="na">subscribe</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">id</span><span class="o">()))</span> <span class="c1">// Register a subscriber that echoes the id</span>
-    <span class="o">.</span><span class="na">subscribe</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="n">doSomethingWithEvent</span><span class="o">(</span><span class="n">e</span><span class="o">))</span>    <span class="c1">// Register another subscriber that does something with the event</span>
-    <span class="o">.</span><span class="na">build</span><span class="o">()</span>                                    <span class="c1">// Build the NoMQ-instance</span>
-    <span class="o">.</span><span class="na">start</span><span class="o">();</span>                                   <span class="c1">// Start it (enable publish and subscribe)</span>
+<div class="highlight highlight-java"><pre><span class="n">NoMQ</span> <span class="n">noMQ</span> <span class="o">=</span> <span class="n">NoMQBuilder</span><span class="o">.</span><span class="na">builder</span><span class="o">()</span>
+    <span class="o">.</span><span class="na">subscribe</span><span class="o">(</span><span class="n">e</span> <span class="o">-&gt;</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">id</span><span class="o">()))</span>
+    <span class="o">.</span><span class="na">build</span><span class="o">()</span>
+    <span class="o">.</span><span class="na">start</span><span class="o">();</span>
 
-<span class="c1">// Publish an event</span>
-<span class="n">noMQ</span><span class="o">.</span><span class="na">publish</span><span class="o">(</span><span class="s">"Some payload"</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
+<span class="c1">// Publish an event asynchronously</span>
+<span class="n">noMQ</span><span class="o">.</span><span class="na">publishAsync</span><span class="o">(</span><span class="s">"myEvent"</span><span class="o">,</span> <span class="s">"Some payload"</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
 </pre></div>
 
-<p>The event interface is pretty straightforward, it contains a generated unique id together with the payload provided by the
-publisher of the event.</p>
+<p>The payload for an event is always a byte array. This may seem like a strict limitation so if you need to dispatch richer
+objects the solution to this is to use a <em>Converter</em>. The code below converts a String to a byte array.</p>
 
-<div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Event</span> <span class="o">{</span>
-    <span class="n">String</span> <span class="nf">id</span><span class="o">();</span>
-    <span class="kt">byte</span><span class="o">[]</span> <span class="nf">payload</span><span class="o">();</span>
-<span class="o">}</span>
+<div class="highlight highlight-java"><pre><span class="n">noMQ</span><span class="o">.</span><span class="na">publishAsync</span><span class="o">(</span><span class="s">"myEvent"</span><span class="o">,</span> <span class="s">"Some payload"</span><span class="o">,</span> <span class="n">str</span> <span class="o">-&gt;</span> <span class="n">str</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
 </pre></div>
 
-<p>The <em>EventSubscribers: simply implements the method _onEvent</em>.</p>
+<p>Subscription of events is done via <em>EventSubscribers</em>. Subscribers are registered during setup and simply implements the method
+<em>onEvent</em>.</p>
 
 <div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">EventSubscriber</span> <span class="o">{</span>
     <span class="kt">void</span> <span class="nf">onEvent</span><span class="o">(</span><span class="n">Event</span> <span class="n">event</span><span class="o">);</span>
 <span class="o">}</span>
+</pre></div>
+
+<p>The event interface is straightforward, it contains a generated unique id, the event type and the payload provided by the
+publisher of the event.</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Event</span> <span class="o">{</span>
+    <span class="n">String</span> <span class="nf">id</span><span class="o">();</span>
+    <span class="n">String</span> <span class="nf">type</span><span class="o">();</span>
+    <span class="kt">byte</span><span class="o">[]</span> <span class="nf">payload</span><span class="o">();</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>If you want to subscribe to the payload in some other format it is possible to use a <em>Converter</em> for subscriptions as well. The
+<em>PayloadSubscriber</em> is used together with a <em>Converter</em>.</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">PayloadSubscriber</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="kt">void</span> <span class="nf">onPayload</span><span class="o">(</span><span class="n">T</span> <span class="n">payload</span><span class="o">);</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>To register the <em>PayloadSubscriber</em> and <em>Converter</em> use the following code:</p>
+
+<div class="highlight highlight-java"><pre><span class="c1">// Register payload subscriber and converter,</span>
+<span class="c1">// the byte[] is converted to a String</span>
+<span class="n">NoMQ</span> <span class="n">noMQ</span> <span class="o">=</span> <span class="n">NoMQBuilder</span><span class="o">.</span><span class="na">builder</span><span class="o">()</span>
+    <span class="o">.</span><span class="na">subscribe</span><span class="o">(</span><span class="s">"myEvent"</span><span class="o">,</span> <span class="n">str</span> <span class="o">-&gt;</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">str</span><span class="o">),</span> <span class="n">bytes</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">bytes</span><span class="o">))</span>
+    <span class="o">.</span><span class="na">build</span><span class="o">()</span>
+    <span class="o">.</span><span class="na">start</span><span class="o">();</span>
+
+<span class="c1">// Publish using a converter</span>
+<span class="n">noMQ</span><span class="o">.</span><span class="na">publishAsync</span><span class="o">(</span><span class="s">"myEvent"</span><span class="o">,</span> <span class="s">"A string"</span><span class="o">,</span> <span class="n">str</span> <span class="o">-&gt;</span> <span class="n">str</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
 </pre></div>
 
 <h2>
@@ -89,6 +121,28 @@ publisher of the event.</p>
 
 <p>NoMQ is based on Hazelcast - to set up a cluster follow the instructions on the Hazelcast website
 (<a href="http://hazelcast.org/docs/latest/manual/html-single/hazelcast-documentation.html#network-configuration">http://hazelcast.org/docs/latest/manual/html-single/hazelcast-documentation.html#network-configuration</a>)</p>
+
+<h1>
+<a name="issues-and-feature-requests" class="anchor" href="#issues-and-feature-requests"><span class="octicon octicon-link"></span></a>Issues and feature requests</h1>
+
+<p>NoMQ uses <a href="https://github.com/wassgren/NoMQ/issues">GitHub Issues</a> for feature requests and issue tracking.</p>
+
+<h1>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>Copyright 2014 the original author or authors</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at</p>
+
+<p><a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+
+<p>Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.</p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/wassgren">wassgren</a></p>
