@@ -18,7 +18,7 @@ package org.nomq.core;
 
 /**
  * The payload subscriber is basically an {@link org.nomq.core.EventSubscriber} that uses a registered {@link
- * org.nomq.core.Converter} to convert the payload from a <code>byte[]</code> to the requested type.
+ * PayloadConverter} to convert the payload from a <code>byte[]</code> to the requested type.
  *
  * @author Tommy Wassgren
  */

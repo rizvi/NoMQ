@@ -33,7 +33,7 @@ public interface Event {
 
     /**
      * This returns the payload of the event - the Event class can only carry byte[] but conversions to and from other types is
-     * possible via the {@link org.nomq.core.Converter}-interface.
+     * possible via the {@link PayloadConverter}-interface.
      *
      * @return The payload of the event.
      */

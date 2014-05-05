@@ -144,8 +144,8 @@ public final class NoMQBuilder {
     /**
      * Provide your own thread pool instead of the default.
      *
-     * @param executorService The thread pool
-     * @return The builder to allow further chaining
+     * @param executorService The thread pool.
+     * @return The builder to allow further chaining.
      */
     public NoMQBuilder executorService(final ScheduledExecutorService executorService) {
         this.executorService = executorService;
@@ -157,8 +157,8 @@ public final class NoMQBuilder {
      * created. Note that it is also possible to simply pass a Hazelcast {@link com.hazelcast.config.Config}-object to configure
      * the Hazelcast cluster.
      *
-     * @param hz The hazelcast instance to use
-     * @return The builder to allow further chaining
+     * @param hz The hazelcast instance to use.
+     * @return The builder to allow further chaining.
      * @see #hazelcast(com.hazelcast.config.Config)
      */
     public NoMQBuilder hazelcast(final HazelcastInstance hz) {
@@ -172,8 +172,8 @@ public final class NoMQBuilder {
      * or via configuration files. See <a href="http://hazelcast.org/docs/latest/manual/html-single/hazelcast-documentation.html#configuration">the
      * Hazelcast documentation</a> for more info.
      *
-     * @param config The hazelcast configuration to use
-     * @return The builder to allow further chaining
+     * @param config The hazelcast configuration to use.
+     * @return The builder to allow further chaining.
      * @see #hazelcast(HazelcastInstance)
      */
     public NoMQBuilder hazelcast(final Config config) {
@@ -189,8 +189,8 @@ public final class NoMQBuilder {
      * If you wish to provide your own playback event store simply build the NoMQBuilder-instance using the {@link
      * #playback(org.nomq.core.EventStore)}-method.
      *
-     * @param folder The folder to use for the playback event store
-     * @return The builder to allow further chaining
+     * @param folder The folder to use for the playback event store.
+     * @return The builder to allow further chaining.
      * @see #playback(org.nomq.core.EventStore)
      */
     public NoMQBuilder playback(final String folder) {
@@ -203,8 +203,8 @@ public final class NoMQBuilder {
      * Create the NoMQBuilder-instance using a custom event store for playback. To use the default playback event store invoke
      * the {@link #playback(String)}-method with a valid folder or simply don't invoke any of the playback-methods.
      *
-     * @param playbackEventStore The playback event store
-     * @return The builder to allow further chaining
+     * @param playbackEventStore The playback event store.
+     * @return The builder to allow further chaining.
      * @see #playback(String)
      */
     public NoMQBuilder playback(final EventStore playbackEventStore) {
@@ -216,8 +216,8 @@ public final class NoMQBuilder {
      * Sets the internal in-memory playback to use for the NoMQBuilder-instance. This is mainly used for internal usage and
      * should rarely be set but it could be useful if you wish to add statistics or similar to the in-memory queue.
      *
-     * @param playbackQueue The playback queue
-     * @return The builder to allow further chaining
+     * @param playbackQueue The playback queue.
+     * @return The builder to allow further chaining.
      */
     public NoMQBuilder playbackQueue(final BlockingQueue<Event> playbackQueue) {
         this.playbackQueue = playbackQueue;
@@ -231,8 +231,8 @@ public final class NoMQBuilder {
      * If you wish to provide your own record event store simply build the NoMQBuilder-instance using the {@link
      * #record(org.nomq.core.EventStore)}-method.
      *
-     * @param folder The folder to use for the record event store
-     * @return The builder to allow further chaining
+     * @param folder The folder to use for the record event store.
+     * @return The builder to allow further chaining.
      * @see #record(org.nomq.core.EventStore)
      */
     public NoMQBuilder record(final String folder) {
@@ -245,8 +245,8 @@ public final class NoMQBuilder {
      * Create the NoMQBuilder-instance using a custom event store for recording. To use the default recording event store invoke
      * the {@link #record(String)}-method with a valid folder or simply don't invoke any of the record-methods.
      *
-     * @param recordEventStore The record event store
-     * @return The builder to allow further chaining
+     * @param recordEventStore The record event store.
+     * @return The builder to allow further chaining.
      * @see #record(String)
      */
     public NoMQBuilder record(final EventStore recordEventStore) {
@@ -257,8 +257,8 @@ public final class NoMQBuilder {
     /**
      * This is where you add event subscribers that will receive events.
      *
-     * @param eventSubscribers The event subscribers
-     * @return The builder to allow further chaining
+     * @param eventSubscribers The event subscribers.
+     * @return The builder to allow further chaining.
      */
     public NoMQBuilder subscribe(final EventSubscriber... eventSubscribers) {
         if (this.eventSubscribers == null) {
@@ -274,11 +274,11 @@ public final class NoMQBuilder {
      *
      * @param type              The event type (this must be the same type used when publishing the event).
      * @param payloadSubscriber The payload subscriber.
-     * @param converter         The converter
+     * @param converter         The payload converter.
      * @return The builder to allow for further chaining.
      */
     public <T> NoMQBuilder subscribe(
-            final String type, final PayloadSubscriber<T> payloadSubscriber, final Converter<byte[], T> converter) {
+            final String type, final PayloadSubscriber<T> payloadSubscriber, final PayloadConverter<byte[], T> converter) {
         subscribe(event -> {
             if (type.equals(event.type())) {
                 payloadSubscriber.onPayload(converter.convert(event.payload()));
@@ -290,8 +290,8 @@ public final class NoMQBuilder {
     /**
      * Sets the max number of attempts that NoMQ will attempt to sync the data during startup.
      *
-     * @param maxSyncAttempts Max number of sync attempts
-     * @return The builder to allow further chaining
+     * @param maxSyncAttempts Max number of sync attempts.
+     * @return The builder to allow further chaining.
      * @see #syncTimeout(long)
      */
     public NoMQBuilder syncAttempts(final int maxSyncAttempts) {
@@ -302,8 +302,8 @@ public final class NoMQBuilder {
     /**
      * Sets the timeout (in millis) for how long the sync operation should wait before it performs a new attempt.
      *
-     * @param syncTimeout The timeout in millis
-     * @return The builder to allow further chaining
+     * @param syncTimeout The timeout in millis.
+     * @return The builder to allow further chaining.
      * @see #syncAttempts(int)
      */
     public NoMQBuilder syncTimeout(final long syncTimeout) {
@@ -316,7 +316,7 @@ public final class NoMQBuilder {
      * Hazelcast instance. The default name is {@link NoMQBuilder#DEFAULT_TOPIC}.
      *
      * @param name The name of the topic to use.
-     * @return The builder to allow further chaining
+     * @return The builder to allow further chaining.
      */
     public NoMQBuilder topic(final String name) {
         this.topic = name;

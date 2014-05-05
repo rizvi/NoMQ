@@ -1,10 +1,14 @@
 # NoMQ [![build status](https://secure.travis-ci.org/wassgren/NoMQ.png)](http://travis-ci.org/wassgren/NoMQ)
 
-__NoMQ__ is short for _Not a Message Queue_. It is a distributed event queue that is based on Java 8 and Hazelcast. NoMQ
-requires __NO__ installation, simply add the jar to your project.
+__NoMQ__ is short for _Not a Message Queue_. It is a __distributed event queue__ that is based on Java 8 and
+[Hazelcast](http://hazelcast.org/). NoMQ requires __NO__ installation, simply add the jar to your project.
+
+Events are published somewhere in a cluster and dispatched to all event subscribers in the entire cluster, in the same order,
+everywhere.
 
 ## Prerequisites
-* Java 8
+* Java 8.
+* A sane build environment (e.g. [Maven](http://maven.apache.org/), [Ivy](https://ant.apache.org/ivy/) or [Gradle](http://www.gradle.org/).
 
 ## Features
  * __durability:__ events survive reboots
@@ -13,12 +17,14 @@ requires __NO__ installation, simply add the jar to your project.
  * __no additional installation required:__ simply include the jars and configure NoMQ from within your Java-code.
 
 ## Getting started
-Triggering an event requires a handle to the NoMQ-instance, a payload that is sent to all subscribers and a name of the event
-known as the event type.
+Publishing an event requires a handle to a NoMQ-instance, instances are created using the _NoMQBuilder_. The event contains an
+event type that describes what kind of event you're triggering and a payload which is the actual event data.
 
-If you want to subscribe to events in the NoMQ cluster you need to register an _EventSubscriber_. The following code starts a
-NoMQ-instance and registers an event subscriber that simply echoes the event id on _System.out_. Events can be published by any
-node in the cluster, they will arrive at all event subscribers in the same order.
+Subscribing to an event also requires a handle to a NoMQ-instance. Furthermore, you must register one or more instances of the
+class _EventSubscriber_.
+
+The code below creats a NoMQ-instance using the _NoMQBuilder_. It also registers an _EventSubscriber_ that simply echoes the id
+of all received events on _System.out_.
 
 ```java
 NoMQ noMQ = NoMQBuilder.builder()
@@ -31,41 +37,16 @@ noMQ.publishAsync("myEvent", "Some payload".getBytes());
 ```
 
 The payload for an event is always a byte array. This may seem like a strict limitation so if you need to dispatch richer
-objects the solution to this is to use a _Converter_. The code below converts a String to a byte array.
+objects the solution to this is to use a _PayloadConverter_. The code below uses a converter that converts a _String_ to a
+_byte[]_.
 
 ```java
 noMQ.publishAsync("myEvent", "Some payload", str -> str.getBytes());
 ```
 
-Subscription of events is done via _EventSubscribers_. Subscribers are registered during setup and simply implements the method
-_onEvent_.
+If you want to subscribe to the payload in some other format than a byte array it is possible to use the _PayloadConverter_ for
+subscriptions as well. The _PayloadSubscriber_ is used together with a _PayloadConverter_ as in the example below.
 
-```java
-public interface EventSubscriber {
-    void onEvent(Event event);
-}
-```
-
-The event interface is straightforward, it contains a generated unique id, the event type and the payload provided by the
-publisher of the event.
-```java
-public interface Event {
-    String id();
-    String type();
-    byte[] payload();
-}
-```
-
-If you want to subscribe to the payload in some other format it is possible to use a _Converter_ for subscriptions as well. The
-_PayloadSubscriber_ is used together with a _Converter_.
-
-```java
-public interface PayloadSubscriber<T> {
-    void onPayload(T payload);
-}
-```
-
-To register the _PayloadSubscriber_ and _Converter_ use the following code:
 ```java
 // Register payload subscriber and converter,
 // the byte[] is converted to a String

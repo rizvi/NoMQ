@@ -37,17 +37,17 @@ public interface NoMQ extends Startable<NoMQ>, Stoppable {
     Event publish(final String type, final byte[] payload);
 
     /**
-     * Blocking version of the {@link #publishAsync(String, Object, Converter)}-method. The method blocks until the event has
+     * Blocking version of the {@link #publishAsync(String, Object, PayloadConverter)}-method. The method blocks until the event has
      * been published.
      *
-     * The object to be published can be of any type, it will be converted to a byte array via the provided {@link Converter}.
+     * The object to be published can be of any type, it will be converted to a byte array via the provided {@link PayloadConverter}.
      *
      * @param type          The event type.
      * @param payloadObject The payload object.
      * @param converter     The converter to use (converts to a byte array).
      * @return The published event
      */
-    <T> Event publish(final String type, final T payloadObject, final Converter<T, byte[]> converter);
+    <T> Event publish(final String type, final T payloadObject, final PayloadConverter<T, byte[]> converter);
 
     /**
      * Publishes the payload to the NoMQ-system (asynchronously). This is the same as using the {@link #publishAsync(String,
@@ -64,17 +64,17 @@ public interface NoMQ extends Startable<NoMQ>, Stoppable {
      * noop-callbacks.
      *
      * The object to be published can be of any type and it will be converted to a byte array via the provided {@link
-     * Converter}.
+     * PayloadConverter}.
      *
      * @param type          The event type.
      * @param payloadObject The payload object to publish.
      * @param converter     The converter.
      */
-    <T> void publishAsync(final String type, T payloadObject, Converter<T, byte[]> converter);
+    <T> void publishAsync(final String type, T payloadObject, PayloadConverter<T, byte[]> converter);
 
     /**
      * A non-blocking method for publishing a payload object of any type. The payload object will be converted to a byte array
-     * via the provided {@link Converter}. The result of the operation is returned via callbacks (success or failure).
+     * via the provided {@link PayloadConverter}. The result of the operation is returned via callbacks (success or failure).
      *
      * @param type               The event type.
      * @param payloadObject      The payload object to publish.
@@ -85,14 +85,14 @@ public interface NoMQ extends Startable<NoMQ>, Stoppable {
     <T> void publishAsync(
             final String type,
             T payloadObject,
-            Converter<T, byte[]> converter,
+            PayloadConverter<T, byte[]> converter,
             EventPublisherCallback publisherCallback,
             ExceptionCallback... exceptionCallbacks);
 
 
     /**
      * A non-blocking method for publishing a payload object of any type. The payload object will be converted to a byte array
-     * via the provided {@link Converter}. The result of the operation is returned via callbacks (success or failure).
+     * via the provided {@link PayloadConverter}. The result of the operation is returned via callbacks (success or failure).
      *
      * @param type               The event type.
      * @param payload            The payload to publish.

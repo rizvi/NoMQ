@@ -17,9 +17,12 @@
 package org.nomq.core;
 
 /**
+ * Converts a payload object to a byte array or vice versa. This can be used both for publishing event and for subscribing
+ * events.
+ *
  * @author Tommy Wassgren
  */
 @FunctionalInterface
-public interface Converter<I, O> {
+public interface PayloadConverter<I, O> {
     O convert(I input);
 }

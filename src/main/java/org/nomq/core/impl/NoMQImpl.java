@@ -17,7 +17,7 @@
 package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
-import org.nomq.core.Converter;
+import org.nomq.core.PayloadConverter;
 import org.nomq.core.Event;
 import org.nomq.core.EventPublisherCallback;
 import org.nomq.core.EventStore;
@@ -108,7 +108,7 @@ public class NoMQImpl implements NoMQ {
     }
 
     @Override
-    public <T> Event publish(final String type, final T payloadObject, final Converter<T, byte[]> converter) {
+    public <T> Event publish(final String type, final T payloadObject, final PayloadConverter<T, byte[]> converter) {
         return publish(type, converter.convert(payloadObject));
     }
 
@@ -120,7 +120,7 @@ public class NoMQImpl implements NoMQ {
 
 
     @Override
-    public <T> void publishAsync(final String type, final T payloadObject, final Converter<T, byte[]> converter) {
+    public <T> void publishAsync(final String type, final T payloadObject, final PayloadConverter<T, byte[]> converter) {
         // Use the provided converter and use a noop callback
         publishAsync(type, payloadObject, converter, e -> { /* Do nothing */ });
     }
@@ -129,7 +129,7 @@ public class NoMQImpl implements NoMQ {
     public <T> void publishAsync(
             final String type,
             final T payloadObject,
-            final Converter<T, byte[]> converter,
+            final PayloadConverter<T, byte[]> converter,
             final EventPublisherCallback publisherCallback,
             final ExceptionCallback... exceptionCallbacks) {
 
