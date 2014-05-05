@@ -23,7 +23,6 @@ node in the cluster, they will arrive at all event subscribers in the same order
 ```java
 NoMQ noMQ = NoMQBuilder.builder()
     .subscribe(e -> System.out.println(e.id()))
-    .subscribe(e -> doSomethingWithEvent(e))
     .build()
     .start();
 
@@ -31,15 +30,14 @@ NoMQ noMQ = NoMQBuilder.builder()
 noMQ.publishAsync("myEvent", "Some payload".getBytes());
 ```
 
-NoMQ can only dispatch events where the payload is a byte array. This may seem like a strict limitation but if you need to
-dispatch richer objects the solution to this is to use _Converter_s.
+The payload for an event is always a byte array. This may seem like a strict limitation so if you need to dispatch richer
+objects the solution to this is to use a _Converter_. The code below converts a String to a byte array.
 
-```
-// Converter that converts the payload of type String to a byte[]
+```java
 noMQ.publishAsync("myEvent", "Some payload", str -> str.getBytes());
 ```
 
-Subscription of events is done via _EventSubscribers_. Subscribers are registered setup and simply implements the method
+Subscription of events is done via _EventSubscribers_. Subscribers are registered during setup and simply implements the method
 _onEvent_.
 
 ```java
@@ -58,18 +56,19 @@ public interface Event {
 }
 ```
 
-It is also possible to register a converter when subscribing to events. The payload (byte array) is then converted back to the
-correct type and dispatched using a _PayloadSubscriber_.
+If you want to subscribe to the payload in some other format it is possible to use a _Converter_ for subscriptions as well. The
+_PayloadSubscriber_ is used together with a _Converter_.
 
-```
+```java
 public interface PayloadSubscriber<T> {
     void onPayload(T payload);
 }
 ```
 
 To register the _PayloadSubscriber_ and _Converter_ use the following code:
-```
-// Register subscriber using a converter
+```java
+// Register payload subscriber and converter,
+// the byte[] is converted to a String
 NoMQ noMQ = NoMQBuilder.builder()
     .subscribe("myEvent", str -> System.out.println(str), bytes -> new String(bytes))
     .build()
@@ -93,7 +92,7 @@ NoMQ uses [GitHub Issues](https://github.com/wassgren/NoMQ/issues) for feature r
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+   http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
