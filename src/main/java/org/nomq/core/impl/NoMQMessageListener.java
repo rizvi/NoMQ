@@ -14,13 +14,13 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
-import org.nomq.core.lifecycle.Stoppable;
+import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.nomq.core.process.NoMQHelper.isSyncRequest;
+import static org.nomq.core.impl.NoMQHelper.isSyncRequest;
 
 /**
  * This message listener feeds the playback queue with all the new entries that are added to the list. During initialization,

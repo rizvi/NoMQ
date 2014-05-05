@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.ITopic;
@@ -36,12 +36,8 @@ class NoMQHelper {
         return "all";
     }
 
-    static Event createEvent(final String id, final byte[] payload) {
-        return new SerializableEvent(id, payload);
-    }
-
-    static Event createEvent(final String id) {
-        return createEvent(id, null);
+    static Event createEvent(final String id, final String type, final byte[] payload) {
+        return new SerializableEvent(id, type, payload);
     }
 
     static String generateSyncRequestId(final EventStore recordEventStore) {

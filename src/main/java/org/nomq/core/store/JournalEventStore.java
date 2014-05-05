@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.store;
 
 import journal.io.api.Journal;
 import journal.io.api.JournalBuilder;
 import journal.io.api.Location;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
-import org.nomq.core.lifecycle.Stoppable;
+import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

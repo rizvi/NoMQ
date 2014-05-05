@@ -14,13 +14,11 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.setup;
+package org.nomq.core;
 
 import com.hazelcast.core.Hazelcast;
 import org.junit.Test;
-import org.nomq.core.Event;
-import org.nomq.core.NoMQ;
-import org.nomq.core.process.JournalEventStore;
+import org.nomq.core.store.JournalEventStore;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,7 +66,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        noMQ.publish("Simple event", s -> s.getBytes());
+        noMQ.publish("testEvent", "Simple event", s -> s.getBytes());
 
         // Wait for the message to be delivered
         countDownLatch.await();
@@ -97,7 +95,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        noMQ.publish("Simple event", s -> s.getBytes());
+        noMQ.publish("testEvent", "Simple event", s -> s.getBytes());
 
         // Wait for the message to be delivered
         countDownLatch.await();
@@ -128,7 +126,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        noMQ.publish("Simple event", s -> s.getBytes());
+        noMQ.publish("testEvent", "Simple event", s -> s.getBytes());
 
         // Wait for the message to be delivered
         countDownLatch.await();

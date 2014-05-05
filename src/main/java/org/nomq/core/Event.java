@@ -17,19 +17,33 @@
 package org.nomq.core;
 
 /**
- * Events can be published by event publishers and received by event subscribers. Events contains a generated id and the payload
- * that was provided by the event publisher.
+ * Events can be published by event publishers and received by event subscribers. Events contains a generated id, the payload
+ * which is basically a byte array and an type. The type is used to semantically differentiate events from each other and to
+ * find the correct subscribers.
  *
  * @author Tommy Wassgren
  */
 public interface Event {
     /**
+     * A generated unique id (UUID) to identify the event.
+     *
      * @return The unique id of the event.
      */
     String id();
 
     /**
+     * This returns the payload of the event - the Event class can only carry byte[] but conversions to and from other types is
+     * possible via the {@link org.nomq.core.Converter}-interface.
+     *
      * @return The payload of the event.
      */
     byte[] payload();
+
+    /**
+     * The event type is used to semantically describe an event. Furthermore the type is used to route the event to the correct
+     * subscriber.
+     *
+     * @return The event type.
+     */
+    String type();
 }

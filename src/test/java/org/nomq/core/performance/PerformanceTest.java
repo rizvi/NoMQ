@@ -18,7 +18,7 @@ package org.nomq.core.performance;
 
 import com.hazelcast.core.Hazelcast;
 import org.nomq.core.NoMQ;
-import org.nomq.core.setup.NoMQBuilder;
+import org.nomq.core.NoMQBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ import java.util.concurrent.CountDownLatch;
 /**
  * @author Tommy Wassgren
  */
-public class PerformanceTest {
+class PerformanceTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static void main(final String[] args) throws IOException, InterruptedException {
@@ -57,6 +57,7 @@ public class PerformanceTest {
         final CountDownLatch publishedCounter = new CountDownLatch(nrOfEvents);
         for (int i = 0; i < nrOfEvents; i++) {
             noMQ1.publishAsync(
+                    "performanceEvent",
                     "Payload #" + Integer.toString(i),
                     s -> s.getBytes(),
                     e -> publishedCounter.countDown());

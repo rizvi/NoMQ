@@ -14,11 +14,10 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
-import org.nomq.core.EventPublisher;
 import org.nomq.core.EventPublisherCallback;
 import org.nomq.core.ExceptionCallback;
 import org.slf4j.Logger;
@@ -29,9 +28,6 @@ import java.util.concurrent.ExecutorService;
 
 import static java.util.Arrays.stream;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
-import static org.nomq.core.process.NoMQHelper.createEvent;
-import static org.nomq.core.process.NoMQHelper.generateUuid;
-import static org.nomq.core.process.NoMQHelper.sharedTopic;
 
 /**
  * The implementation of the event publisher, this publisher uses {@link CompletableFuture} for async requests and also provides
@@ -39,7 +35,7 @@ import static org.nomq.core.process.NoMQHelper.sharedTopic;
  *
  * @author Tommy Wassgren
  */
-public class AsyncEventPublisher implements EventPublisher {
+public class AsyncEventPublisher {
     private static final ExceptionCallback[] EMPTY_EXCEPTION_CALLBACK = new ExceptionCallback[0];
     private final ExecutorService executorService;
     private final HazelcastInstance hz;
@@ -52,13 +48,22 @@ public class AsyncEventPublisher implements EventPublisher {
         this.executorService = executorService;
     }
 
-    @Override
+    /**
+     * Publishes the provided payload to the NoMQ-system (asynchronously). The result of the operation is provided to the
+     * callbacks (success or failure).
+     *
+     * @param type               The event type.
+     * @param payload            The payload that will published with the event.
+     * @param publisherCallback  Success - the callback that will be invoked when the publish has completed.
+     * @param exceptionCallbacks Failure - invoked when an exception occurs.
+     */
     public void publishAsync(
+            final String type,
             final byte[] payload,
             final EventPublisherCallback publisherCallback,
             final ExceptionCallback... exceptionCallbacks) {
 
-        doPublish(payload)
+        doPublish(type, payload)
                 .handleAsync((event, exception) -> {
                     if (event != null) {
                         publisherCallback.eventPublished(event);
@@ -69,38 +74,38 @@ public class AsyncEventPublisher implements EventPublisher {
                 }, executorService);
     }
 
-    protected Event create(final byte[] payload) {
-        return createEvent(generateUuid(), payload);
+    Event create(final String type, final byte[] payload) {
+        return NoMQHelper.createEvent(NoMQHelper.generateUuid(), type, payload);
     }
 
-    protected HazelcastInstance hazelcastInstance() {
+    HazelcastInstance hazelcastInstance() {
         return hz;
     }
 
-    protected ExceptionCallback[] notNull(final ExceptionCallback... exceptionCallbacks) {
+    ExceptionCallback[] notNull(final ExceptionCallback... exceptionCallbacks) {
         return exceptionCallbacks == null ? EMPTY_EXCEPTION_CALLBACK : exceptionCallbacks;
     }
 
-    protected void notifyExceptionHandlers(final Throwable thr, final ExceptionCallback... exceptionCallbacks) {
+    void notifyExceptionHandlers(final Throwable thr, final ExceptionCallback... exceptionCallbacks) {
         stream(notNull(exceptionCallbacks)).forEach(callback -> callback.onException(thr));
     }
 
     /**
      * Protected since sync events can be sent this way.
      */
-    protected Event publishAndWait(final Event event) {
+    Event publishAndWait(final Event event) {
         log.debug("Publish event [id={}]", event.id());
-        sharedTopic(hazelcastInstance(), topic()).publish(event);
+        NoMQHelper.sharedTopic(hazelcastInstance(), topic()).publish(event);
         return event;
     }
 
-    protected String topic() {
+    String topic() {
         return topic;
     }
 
-    private CompletableFuture<Event> doPublish(final byte[] payload) {
+    private CompletableFuture<Event> doPublish(final String type, final byte[] payload) {
         return supplyAsync(() -> {
-            Event event = create(payload);
+            Event event = create(type, payload);
             publishAndWait(event);
             return event;
         }, executorService);

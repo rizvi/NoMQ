@@ -14,14 +14,16 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import org.nomq.core.Event;
 
 import java.io.Serializable;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- * This is the event implementation - it is serializable to work with both journal.io and hazelcast.
+ * This is the event implementation - it is serializable to work with both the event store and Hazelcast.
  *
  * @author Tommy Wassgren
  */
@@ -30,9 +32,11 @@ class SerializableEvent implements Event, Serializable {
     private static final byte[] EMPTY = new byte[0];
     private final String id;
     private final byte[] payload;
+    private final String type;
 
-    SerializableEvent(final String id, final byte[] payload) {
-        this.id = id;
+    SerializableEvent(final String id, final String type, final byte[] payload) {
+        this.id = requireNonNull(id);
+        this.type = requireNonNull(type);
         this.payload = payload == null ? EMPTY : payload;
     }
 
@@ -44,5 +48,10 @@ class SerializableEvent implements Event, Serializable {
     @Override
     public byte[] payload() {
         return payload;
+    }
+
+    @Override
+    public String type() {
+        return type;
     }
 }

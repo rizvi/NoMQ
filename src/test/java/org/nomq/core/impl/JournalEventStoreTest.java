@@ -14,10 +14,11 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import org.junit.Test;
 import org.nomq.core.Event;
+import org.nomq.core.store.JournalEventStore;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -211,6 +212,6 @@ public class JournalEventStoreTest {
     }
 
     private Event createEvent(final String id) {
-        return new SerializableEvent(id, id.getBytes());
+        return new SerializableEvent(id, "testEvent", id.getBytes());
     }
 }

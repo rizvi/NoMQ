@@ -14,18 +14,16 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
-import org.nomq.core.lifecycle.Startable;
-import org.nomq.core.lifecycle.Stoppable;
+import org.nomq.core.Startable;
+import org.nomq.core.Stoppable;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-
-import static org.nomq.core.process.NoMQHelper.sharedTopic;
 
 /**
  * The event recorder stores all incoming events in the event store and notifies the shared in-memory queue. This is the "store"
@@ -70,7 +68,7 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
         if (messageListener != null) {
             messageListener.stop();
         }
-        sharedTopic(hz, topic).removeMessageListener(listenerId);
+        NoMQHelper.sharedTopic(hz, topic).removeMessageListener(listenerId);
         listenerId = null;
     }
 
@@ -83,7 +81,7 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
         // Start listening to messages and store them in the playback queue. Before the queue has caught up the events are
         // stored in a temp playback queue.
         messageListener = new NoMQMessageListener(recordEventStore, playbackQueue);
-        listenerId = sharedTopic(hz, topic).addMessageListener(messageListener);
+        listenerId = NoMQHelper.sharedTopic(hz, topic).addMessageListener(messageListener);
 
         // Do the actual sync with the cluster. All processed ids are returned so that they can be removed from the temp queue
         // in the next step.

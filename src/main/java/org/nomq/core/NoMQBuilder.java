@@ -15,35 +15,22 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.setup;
+package org.nomq.core;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.config.TopicConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import org.nomq.core.Converter;
-import org.nomq.core.Event;
-import org.nomq.core.EventPublisher;
-import org.nomq.core.EventPublisherCallback;
-import org.nomq.core.EventStore;
-import org.nomq.core.EventSubscriber;
-import org.nomq.core.ExceptionCallback;
-import org.nomq.core.NoMQ;
-import org.nomq.core.PayloadSubscriber;
-import org.nomq.core.lifecycle.Startable;
-import org.nomq.core.lifecycle.Stoppable;
-import org.nomq.core.process.AsyncEventPublisher;
-import org.nomq.core.process.EventPlayer;
-import org.nomq.core.process.EventRecorder;
-import org.nomq.core.process.JournalEventStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.nomq.core.impl.AsyncEventPublisher;
+import org.nomq.core.impl.EventPlayer;
+import org.nomq.core.impl.EventRecorder;
+import org.nomq.core.impl.NoMQImpl;
+import org.nomq.core.store.JournalEventStore;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -95,151 +82,6 @@ public final class NoMQBuilder {
     public static final long DEFAULT_SYNC_TIMEOUT = 5000;
     public static final int DEFAULT_SYNC_ATTEMPTS = 3;
 
-
-    /**
-     * The internal implementation of the NoMQ-system.
-     */
-    private static class NoMQImpl implements NoMQ {
-        private static class PublishResult {
-            private Event event;
-            private Throwable throwable;
-
-            public void failure(final Throwable throwable) {
-                this.throwable = throwable;
-            }
-
-            public Event returnOrThrow() {
-                if (throwable != null) {
-                    throw new IllegalStateException(throwable);
-                }
-                return event;
-            }
-
-            public void success(final Event event) {
-                this.event = event;
-            }
-        }
-
-        private final HazelcastInstance hz;
-        private final Logger log = LoggerFactory.getLogger(getClass());
-        private final EventStore playbackEventStore;
-        private final EventPlayer player;
-        private final EventPublisher publisher;
-        private final EventStore recordEventStore;
-        private final EventRecorder recorder;
-
-        private NoMQImpl(
-                final HazelcastInstance hz,
-                final EventStore playbackEventStore,
-                final EventStore recordEventStore,
-                final EventRecorder recorder,
-                final EventPlayer player,
-                final EventPublisher publisher) {
-
-            this.hz = hz;
-            this.playbackEventStore = playbackEventStore;
-            this.recordEventStore = recordEventStore;
-            this.recorder = recorder;
-            this.player = player;
-            this.publisher = publisher;
-        }
-
-        @Override
-        public Event publish(final byte[] payload) {
-            final CountDownLatch latch = new CountDownLatch(1);
-            final PublishResult result = new PublishResult();
-
-            publishAsync(
-                    payload,
-                    (EventPublisherCallback) event -> {
-                        result.success(event);
-                        latch.countDown();
-
-                    },
-                    throwable -> {
-                        result.failure(throwable);
-                        latch.countDown();
-                    }
-            );
-            try {
-                latch.await();
-                return result.returnOrThrow();
-            } catch (final InterruptedException e) {
-                throw new IllegalStateException("Publishing interrupted", e);
-            }
-        }
-
-        @Override
-        public <T> Event publish(final T payloadObject, final Converter<T, byte[]> converter) {
-            return publish(converter.convert(payloadObject));
-        }
-
-        @Override
-        public void publishAsync(final byte[] payload) {
-            // No conversion (p->p), simply use the provided payload
-            publishAsync(payload, p -> p);
-        }
-
-
-        @Override
-        public <T> void publishAsync(final T payloadObject, final Converter<T, byte[]> converter) {
-            // Use the provided converter and use a noop callback
-            publishAsync(payloadObject, converter, e -> { /* Do nothing */ });
-        }
-
-        @Override
-        public <T> void publishAsync(
-                final T payloadObject,
-                final Converter<T, byte[]> converter,
-                final EventPublisherCallback publisherCallback,
-                final ExceptionCallback... exceptionCallbacks) {
-
-            publishAsync(converter.convert(payloadObject), publisherCallback, exceptionCallbacks);
-        }
-
-        @Override
-        public <T> void publishAsync(final byte[] payload, final EventPublisherCallback publisherCallback, final ExceptionCallback... exceptionCallbacks) {
-            publisher.publishAsync(payload, publisherCallback, exceptionCallbacks);
-        }
-
-        @Override
-        public NoMQ start() {
-            start(playbackEventStore);
-            start(recordEventStore);
-            start(player);
-            start(recorder);
-            start(publisher);
-
-            log.debug("NoMQ started [nodeId={}]", hz.getLocalEndpoint().getUuid());
-            return this;
-        }
-
-        @Override
-        public void stop() {
-            stop(publisher);
-            stop(recorder);
-            stop(player);
-            stop(recordEventStore);
-            stop(playbackEventStore);
-            hz.getLifecycleService().shutdown();
-        }
-
-        private void start(final Object startable) {
-            if (startable instanceof Startable) {
-                ((Startable) startable).start();
-            }
-        }
-
-        private void stop(final Object stoppable) {
-            if (stoppable instanceof Stoppable) {
-                try {
-                    ((Stoppable) stoppable).stop();
-                } catch (final Throwable throwable) {
-                    log.error("Error while invoking stop", throwable);
-                }
-            }
-        }
-    }
 
     private EventSubscriber[] eventSubscribers;
     private ScheduledExecutorService executorService;
@@ -342,7 +184,7 @@ public final class NoMQBuilder {
 
     /**
      * This sets the folder to use for the playback event store. If this value is set the folder must be writeable and the
-     * standard event store is used ({@link org.nomq.core.process.JournalEventStore}.
+     * standard event store is used ({@link org.nomq.core.store.JournalEventStore}.
      *
      * If you wish to provide your own playback event store simply build the NoMQBuilder-instance using the {@link
      * #playback(org.nomq.core.EventStore)}-method.
@@ -353,7 +195,7 @@ public final class NoMQBuilder {
      */
     public NoMQBuilder playback(final String folder) {
         assertThatFolderIsWriteable(folder);
-        this.playbackEventStore = new JournalEventStore(folder);
+        this.playbackEventStore = createDefaultStore(folder);
         return this;
     }
 
@@ -384,7 +226,7 @@ public final class NoMQBuilder {
 
     /**
      * This sets the folder to use for the record event store. If this value is set the folder must be writeable and the
-     * standard event store is used ({@link org.nomq.core.process.JournalEventStore}.
+     * standard event store is used ({@link org.nomq.core.store.JournalEventStore}.
      *
      * If you wish to provide your own record event store simply build the NoMQBuilder-instance using the {@link
      * #record(org.nomq.core.EventStore)}-method.
@@ -395,7 +237,7 @@ public final class NoMQBuilder {
      */
     public NoMQBuilder record(final String folder) {
         assertThatFolderIsWriteable(folder);
-        this.recordEventStore = new JournalEventStore(folder);
+        this.recordEventStore = createDefaultStore(folder);
         return this;
     }
 
@@ -430,12 +272,18 @@ public final class NoMQBuilder {
     /**
      * Subscribe to the payload of the events - the payload is converted via the provided converter.
      *
+     * @param type              The event type (this must be the same type used when publishing the event).
      * @param payloadSubscriber The payload subscriber.
      * @param converter         The converter
      * @return The builder to allow for further chaining.
      */
-    public <T> NoMQBuilder subscribe(final PayloadSubscriber<T> payloadSubscriber, final Converter<byte[], T> converter) {
-        subscribe(event -> payloadSubscriber.onPayload(converter.convert(event.payload())));
+    public <T> NoMQBuilder subscribe(
+            final String type, final PayloadSubscriber<T> payloadSubscriber, final Converter<byte[], T> converter) {
+        subscribe(event -> {
+            if (type.equals(event.type())) {
+                payloadSubscriber.onPayload(converter.convert(event.payload()));
+            }
+        });
         return this;
     }
 
@@ -486,6 +334,10 @@ public final class NoMQBuilder {
         }
     }
 
+    private EventStore createDefaultStore(final String folder) {
+        return new JournalEventStore(folder);
+    }
+
     private EventSubscriber[] eventSubscribers() {
         if (eventSubscribers == null) {
             eventSubscribers = new EventSubscriber[0];
@@ -520,7 +372,7 @@ public final class NoMQBuilder {
     private EventStore playback() {
         if (playbackEventStore == null) {
             assertThatFolderIsWriteable(DEFAULT_PLAYBACK_FOLDER);
-            playbackEventStore = new JournalEventStore(DEFAULT_PLAYBACK_FOLDER);
+            playbackEventStore = createDefaultStore(DEFAULT_PLAYBACK_FOLDER);
         }
 
         return playbackEventStore;
@@ -537,7 +389,7 @@ public final class NoMQBuilder {
     private EventStore record() {
         if (recordEventStore == null) {
             assertThatFolderIsWriteable(DEFAULT_RECORD_FOLDER);
-            recordEventStore = new JournalEventStore(DEFAULT_RECORD_FOLDER);
+            recordEventStore = createDefaultStore(DEFAULT_RECORD_FOLDER);
         }
         return recordEventStore;
     }

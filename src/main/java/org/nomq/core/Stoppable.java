@@ -14,15 +14,13 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core;
 
 /**
- * Thrown when syncing fails.
+ * Lifecycle interface for stoppable components.
  *
  * @author Tommy Wassgren
  */
-public class SyncFailureException extends Exception {
-    public SyncFailureException(final String message) {
-        super(message);
-    }
+public interface Stoppable {
+    void stop();
 }

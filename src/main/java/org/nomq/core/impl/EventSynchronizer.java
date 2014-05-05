@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.process;
+package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -33,12 +33,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-
-import static org.nomq.core.process.NoMQHelper.all;
-import static org.nomq.core.process.NoMQHelper.createEvent;
-import static org.nomq.core.process.NoMQHelper.generateSyncRequestId;
-import static org.nomq.core.process.NoMQHelper.isSyncRequest;
-import static org.nomq.core.process.NoMQHelper.lockTemplate;
 
 /**
  * Synchronizes events during startup. When NoMQ starts a sync request is published and hopefylly some other NoMQ-node replies.
@@ -95,6 +89,10 @@ class EventSynchronizer {
         return members.size() > 1;
     }
 
+    private Event generateSyncEvent() {
+        return NoMQHelper.createEvent(NoMQHelper.generateSyncRequestId(recordEventStore), "__sync_request", null);
+    }
+
     private boolean isSyncRequestAlreadyHandled(final String syncId) {
         final IMap<String, String> statusMap = hz.getMap(requestMapName());
         final String previous = statusMap.putIfAbsent(syncId, hz.getLocalEndpoint().getUuid());
@@ -127,7 +125,7 @@ class EventSynchronizer {
         processedKeys.add(event.id());
         recordEventStore.append(event);
 
-        if (!isSyncRequest(event)) {
+        if (!NoMQHelper.isSyncRequest(event)) {
             playbackQueue.add(event);
         }
     }
@@ -140,7 +138,7 @@ class EventSynchronizer {
     }
 
     private boolean replayAll(final String str) {
-        return all().equals(str);
+        return NoMQHelper.all().equals(str);
     }
 
     private String replayFromId(final Message<String> message) {
@@ -185,7 +183,7 @@ class EventSynchronizer {
         requestTopic().addMessageListener(request -> {
             log.info("Handling resend request [request={}]", request.getMessageObject());
             final String syncRequestId = request.getMessageObject();
-            lockTemplate(hz, syncRequestId, timeout).tryLock(() -> {
+            NoMQHelper.lockTemplate(hz, syncRequestId, timeout).tryLock(() -> {
                 final String replayFromId = replayFromId(request);
                 if (isSyncRequestAlreadyHandled(syncRequestId)) {
                     log.info("Skipping resend request [request={}]", request.getMessageObject());
@@ -202,7 +200,7 @@ class EventSynchronizer {
         // Publish a "sync" event on the real event queue. This id will be used later as a check to see that NoMQ has
         // been completely synced.
         final String syncRequestId = eventPublisher
-                .publishAndWait(createEvent(generateSyncRequestId(recordEventStore)))
+                .publishAndWait(generateSyncEvent())
                 .id();
 
         // Publish the sync request
