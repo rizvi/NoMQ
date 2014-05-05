@@ -21,7 +21,10 @@ import org.nomq.core.lifecycle.Stoppable;
 
 /**
  * The entry point for working with the NoMQ-system. The NoMQ-instance is created via the class NoMQBuilder and this instance is
- * simply used for lifecycle management and publishing of events.
+ * used for lifecycle management and publishing of events. Subscribers register during creation - also via the NoMQBuilder
+ * class.
+ *
+ * @see #publishAsync(byte[])
  *
  * @author Tommy Wassgren
  */
@@ -33,7 +36,7 @@ public interface NoMQ extends Startable<NoMQ>, Stoppable {
      * @param payload The payload to publish
      * @return The published event
      */
-    Event publishAndWait(final byte[] payload);
+    Event publish(final byte[] payload);
 
     /**
      * Blocking version of the {@link #publishAsync(Object, Converter)}-method. The method blocks until the event has been
@@ -45,7 +48,7 @@ public interface NoMQ extends Startable<NoMQ>, Stoppable {
      * @param converter     The converter to use (converts to a byte array).
      * @return The published event
      */
-    <T> Event publishAndWait(final T payloadObject, final Converter<T, byte[]> converter);
+    <T> Event publish(final T payloadObject, final Converter<T, byte[]> converter);
 
     /**
      * Publishes the payload to the NoMQ-system (asynchronously). This is the same as using the {@link #publishAsync(byte[],

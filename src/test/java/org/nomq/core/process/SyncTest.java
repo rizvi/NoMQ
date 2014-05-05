@@ -78,7 +78,7 @@ public class SyncTest {
     }
 
     private void publish(final NoMQ noMQ, final String message) {
-        final Event event = noMQ.publishAndWait(message.getBytes());
+        final Event event = noMQ.publish(message.getBytes());
         log.debug("Published message [id={}]", event.id());
     }
 

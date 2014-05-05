@@ -29,6 +29,7 @@ import org.nomq.core.EventStore;
 import org.nomq.core.EventSubscriber;
 import org.nomq.core.ExceptionCallback;
 import org.nomq.core.NoMQ;
+import org.nomq.core.PayloadSubscriber;
 import org.nomq.core.lifecycle.Startable;
 import org.nomq.core.lifecycle.Stoppable;
 import org.nomq.core.process.AsyncEventPublisher;
@@ -94,6 +95,7 @@ public final class NoMQBuilder {
     public static final long DEFAULT_SYNC_TIMEOUT = 5000;
     public static final int DEFAULT_SYNC_ATTEMPTS = 3;
 
+
     /**
      * The internal implementation of the NoMQ-system.
      */
@@ -143,7 +145,7 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public Event publishAndWait(final byte[] payload) {
+        public Event publish(final byte[] payload) {
             final CountDownLatch latch = new CountDownLatch(1);
             final PublishResult result = new PublishResult();
 
@@ -168,8 +170,8 @@ public final class NoMQBuilder {
         }
 
         @Override
-        public <T> Event publishAndWait(final T payloadObject, final Converter<T, byte[]> converter) {
-            return publishAndWait(converter.convert(payloadObject));
+        public <T> Event publish(final T payloadObject, final Converter<T, byte[]> converter) {
+            return publish(converter.convert(payloadObject));
         }
 
         @Override
@@ -422,6 +424,18 @@ public final class NoMQBuilder {
         } else {
             this.eventSubscribers = merge(this.eventSubscribers, eventSubscribers);
         }
+        return this;
+    }
+
+    /**
+     * Subscribe to the payload of the events - the payload is converted via the provided converter.
+     *
+     * @param payloadSubscriber The payload subscriber.
+     * @param converter         The converter
+     * @return The builder to allow for further chaining.
+     */
+    public <T> NoMQBuilder subscribe(final PayloadSubscriber<T> payloadSubscriber, final Converter<byte[], T> converter) {
+        subscribe(event -> payloadSubscriber.onPayload(converter.convert(event.payload())));
         return this;
     }
 

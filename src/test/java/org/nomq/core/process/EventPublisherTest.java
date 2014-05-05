@@ -69,7 +69,7 @@ public class EventPublisherTest {
                 if (i % 500 == 0) {
                     Thread.yield(); // Yield, let the other thread publish
                 }
-                noMQ2.publishAndWait("m1", s -> s.getBytes());
+                noMQ2.publish("m1", s -> s.getBytes());
             }
         }).start();
 
@@ -78,7 +78,7 @@ public class EventPublisherTest {
                 if (i % 500 == 0) {
                     Thread.yield(); // Yield, let the other thread publish.
                 }
-                noMQ2.publishAndWait("m2", s -> s.getBytes());
+                noMQ2.publish("m2", s -> s.getBytes());
             }
         }).start();
 
@@ -104,6 +104,26 @@ public class EventPublisherTest {
 
         noMQ.publishAsync("payload1", s -> s.getBytes(), event -> countDownLatch.countDown());
         noMQ.publishAsync("payload2", s -> s.getBytes(), event -> countDownLatch.countDown());
+
+        // Wait for the messages
+        countDownLatch.await();
+
+        noMQ.stop();
+    }
+
+    @Test
+    public void testPubSubOfPayloadAsync() throws IOException, InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
+
+        final NoMQ noMQ = NoMQBuilder.builder()
+                .record(newEventStore())
+                .playback(newEventStore())
+                .subscribe(payload -> countDownLatch.countDown(), String::new) // Subscribe using payload and converter
+                .build()
+                .start();
+
+        noMQ.publishAsync("payload1", s -> s.getBytes()); // Publish using converter
+        noMQ.publishAsync("payload2", s -> s.getBytes()); // Publish using converter
 
         // Wait for the messages
         countDownLatch.await();
@@ -151,8 +171,8 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ2.publishAndWait("payload1", s -> s.getBytes());
-        noMQ2.publishAndWait("payload2", s -> s.getBytes());
+        noMQ2.publish("payload1", s -> s.getBytes());
+        noMQ2.publish("payload2", s -> s.getBytes());
 
         // Wait for the messages
         countDownLatch.await();
