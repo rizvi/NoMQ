@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.manual;
+package org.nomq.core.admin;
 
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
@@ -30,16 +30,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * Simple heartbeat application that can be used for diagnostic purposes.
+ *
  * @author Tommy Wassgren
  */
-public class HeartbeatTest {
+public class Heartbeater {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static void main(final String[] args) throws IOException {
-        new HeartbeatTest();
+        new Heartbeater();
     }
 
-    private HeartbeatTest() throws IOException {
+    private Heartbeater() throws IOException {
         final JournalEventStore recordEventStore = new JournalEventStore(tempFolder());
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
         final NoMQ noMQ = NoMQBuilder
