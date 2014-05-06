@@ -40,6 +40,14 @@ public class Heartbeater {
     }
 
     private Heartbeater() throws IOException {
+        System.out.println("#####################################################################");
+        System.out.println("#####################################################################");
+        System.out.println("#####################################################################");
+        System.out.println("Config: " + System.getProperty("hazelcast.config", "NO CONFIG PROVIDED"));
+        System.out.println("#####################################################################");
+        System.out.println("#####################################################################");
+        System.out.println("#####################################################################");
+
         final JournalEventStore recordEventStore = new JournalEventStore(tempFolder());
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
         final NoMQ noMQ = NoMQBuilder
