@@ -16,6 +16,8 @@
 
 package org.nomq.core.admin;
 
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
 import org.nomq.core.store.JournalEventStore;
@@ -48,13 +50,16 @@ public class Heartbeater {
         System.out.println("#####################################################################");
         System.out.println("#####################################################################");
 
+        final HazelcastInstance hz = Hazelcast.newHazelcastInstance();
+
         final JournalEventStore recordEventStore = new JournalEventStore(tempFolder());
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
         final NoMQ noMQ = NoMQBuilder
                 .builder()
                 .record(recordEventStore)
+                .hazelcast(hz)
                 .executorService(scheduledExecutorService)
-                .subscribe(e -> System.out.println(format("Ping [id=%s, count=%s]", e.id(), new String(e.payload()))))
+                .subscribe(e -> System.out.println(format("Ping [id=%s, count=%s]", hz.getLocalEndpoint().getUuid(), new String(e.payload()))))
                 .build()
                 .start();
 
