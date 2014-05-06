@@ -19,8 +19,6 @@ package org.nomq.core.admin;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
 import org.nomq.core.store.JournalEventStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,14 +27,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.String.format;
+
 /**
  * Simple heartbeat application that can be used for diagnostic purposes.
  *
  * @author Tommy Wassgren
  */
 public class Heartbeater {
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
     public static void main(final String[] args) throws IOException {
         new Heartbeater();
     }
@@ -48,7 +46,7 @@ public class Heartbeater {
                 .builder()
                 .record(recordEventStore)
                 .executorService(scheduledExecutorService)
-                .subscribe(e -> log.info("Ping [id={}, count={}]", e.id(), new String(e.payload())))
+                .subscribe(e -> System.out.println(format("Ping [id=%s, count=%s]", e.id(), new String(e.payload()))))
                 .build()
                 .start();
 
