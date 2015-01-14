@@ -23,8 +23,6 @@ import org.junit.Test;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
 import org.nomq.core.store.JournalEventStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,8 +34,6 @@ import java.util.concurrent.CountDownLatch;
  * @author Tommy Wassgren
  */
 public class SyncTest {
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
     @Test
     public void verifyThatNewInstancesAreSynced() throws IOException, InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
