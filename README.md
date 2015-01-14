@@ -1,14 +1,14 @@
 # NoMQ [![build status](https://secure.travis-ci.org/wassgren/NoMQ.png)](http://travis-ci.org/wassgren/NoMQ)
 
 __NoMQ__ is short for _Not a Message Queue_. It is a __distributed event queue__ that is based on Java 8 and
-[Hazelcast](http://hazelcast.org/). NoMQ requires __NO__ installation, simply add the jar to your project.
+[Hazelcast](http://hazelcast.org/). NoMQ requires __NO__ installation, __simply add the jar to your project__.
 
 So, what exactly is a distributed event queue? Well, events are published somewhere in a cluster (separate JVM:s). They are then
 dispatched to all event subscribers in the entire cluster, in the same order, everywhere.
 
 ## Prerequisites
 * Java 8.
-* A sane build environment (e.g. [Maven](http://maven.apache.org/), [Ivy](https://ant.apache.org/ivy/) or [Gradle](http://www.gradle.org/).
+* A sane build environment (e.g. [Maven](http://maven.apache.org/) or [Gradle](http://www.gradle.org/)).
 
 ## Features
  * __durability:__ events survive reboots
@@ -17,15 +17,15 @@ dispatched to all event subscribers in the entire cluster, in the same order, ev
  * __no additional installation required:__ simply include the jars and configure NoMQ from within your Java-code.
 
 ## Getting started
-Publishing an event requires a handle to a NoMQ-instance that contains various publishing methods. Events are simple types that
-contains:
-* an event type that describes what kind of event you're triggering
-* a payload that is the actual event data.
+Publishing an event requires a handle to a NoMQ-instance that contains various publishing methods. ``Event```s are simple types
+that contains:
+* an _event type_ that describes what kind of event you're triggering
+* a _payload_ that is the actual event data.
 
 When subscribing to events you must register a subscriber using the _subscribe_ method.
 
-The code below creates a NoMQ-instance using the _NoMQBuilder_. It also registers an event subscriber that simply echoes the id
-of all received events on _System.out_.
+The code below creates a NoMQ-instance. The way to do it is to use the _NoMQBuilder_. In the example you can also see the
+registration of an event subscriber that simply echoes the id of all received events to _System.out_.
 
 ```java
 NoMQ noMQ = NoMQBuilder.builder()
@@ -34,22 +34,29 @@ NoMQ noMQ = NoMQBuilder.builder()
     .start(); // Then start it
 
 // Publish an event asynchronously
-noMQ.publishAsync("myEvent", "Some payload".getBytes());
+noMQ.publish("myEvent", "Some payload".getBytes());
 ```
 
-The payload for an event is always a byte array. This may seem like a strict limitation but there is a simple solution. In order
-to publish payloads of any type simple convert the payload to a byte array using a payload converter. The code below uses a
-converter that converts a payload of type _String_ to a _byte[]_.
+The payload for an event is always a byte array (```byte[]```). This may seem like a strict limitation but there is a a reason
+for this. Since Hazelcast relies heavy on serialization (Hazelcast distributes the objects to several nodes) it exposes various
+ways of transforming objects to byte arrays. These include standard Java Serialization where you implement
+```java.io.Serializable```, serialization using HazelCast's ```DataSerializable``` or ```Portable``` etc. We find that these
+restrictions (```Serializable```, ```Portable``` etc) are something that we don't want in the NoMQ-API. NoMQ-users should be
+able to publish any type of event and therefore the entire responsibility of serialization/deserialization is in your hands
+- that's fair, isn't it?
+
+With that being said, in order to publish payloads of *any* type simply convert the payload to a byte array using a
+*payload converter*. The code below uses a converter that converts a payload of type _String_ to a _byte[]_.
 
 ```java
-noMQ.publishAsync(
+noMQ.publish(
     "myEvent",          // Event name
     "Some payload",     // The payload (String)
     String::getBytes);  // Converter
 ```
 
-The published byte array is part of the event objected that is delivered to the event subscribers. If you want to subscribe to
-the payload in some other format than a byte array it is possible to provide a payload converter for
+The published byte array is part of the event object that is delivered to the event subscribers. If you want to subscribe to
+the payload in some other format than a byte array it is possible to provide a reverse payload converter for
 subscriptions as well.
 
 ```java
