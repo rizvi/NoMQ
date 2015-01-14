@@ -28,11 +28,6 @@ import java.util.concurrent.locks.Lock;
  * @author Tommy Wassgren
  */
 class LockTemplate {
-    @FunctionalInterface
-    public interface LockCallback {
-        void execute();
-    }
-
     private final Lock lock;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final long timeout;
@@ -42,12 +37,12 @@ class LockTemplate {
         this.timeout = timeout;
     }
 
-    void lock(final LockCallback callback) {
+    void lock(final Runnable callback) {
         log.debug("Obtaining lock");
         lock.lock();
 
         try {
-            callback.execute();
+            callback.run();
         } catch (final Exception e) {
             throw new IllegalStateException("Error when executing in lock block", e);
         } finally {
@@ -56,12 +51,12 @@ class LockTemplate {
         }
     }
 
-    void tryLock(final LockCallback callback) {
+    void tryLock(final Runnable callback) {
         try {
             log.debug("Obtaining lock");
             lock.tryLock(timeout, TimeUnit.MILLISECONDS);
 
-            callback.execute();
+            callback.run();
         } catch (final InterruptedException e) {
             throw new IllegalStateException("Timeout when obtaining lock", e);
         } catch (final Exception e) {
