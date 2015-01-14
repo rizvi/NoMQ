@@ -65,7 +65,7 @@ public class Heartbeater {
 
         final AtomicInteger integer = new AtomicInteger(0);
         scheduledExecutorService.scheduleWithFixedDelay(
-                () -> noMQ.publishAsync(
+                () -> noMQ.publish(
                         "ping",
                         integer.incrementAndGet(),
                         i -> Integer.toString(i).getBytes()),

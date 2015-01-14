@@ -17,16 +17,14 @@
 package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
-import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
+import org.nomq.core.PublishResult;
 import org.nomq.core.Startable;
 import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -36,26 +34,6 @@ import java.util.function.Function;
  * @author Tommy Wassgren
  */
 public class NoMQImpl implements NoMQ {
-    private static class PublishResult {
-        private Event event;
-        private Throwable throwable;
-
-        public void failure(final Throwable throwable) {
-            this.throwable = throwable;
-        }
-
-        public Event returnOrThrow() {
-            if (throwable != null) {
-                throw new IllegalStateException(throwable);
-            }
-            return event;
-        }
-
-        public void success(final Event event) {
-            this.event = event;
-        }
-    }
-
     private final HazelcastInstance hz;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final EventStore playbackEventStore;
@@ -82,37 +60,13 @@ public class NoMQImpl implements NoMQ {
 
 
     @Override
-    public void publishAsync(final String type, final byte[] payload) {
-        // No conversion (p->p), simply use the provided payload
-        publishAsync(type, payload, p -> p);
-    }
-
-
-    @Override
-    public <T> void publishAsync(final String type, final T payloadObject, final Function<T, byte[]> converter) {
-        // Use the provided converter and use a noop callback
-        publishAsync(type, payloadObject, converter, result -> { /* Do nothing */ },  thr -> { /* Do nothing */ });
+    public PublishResult publish(final String type, final byte[] payload) {
+        return publisher.publishAsync(type, payload);
     }
 
     @Override
-    public <T> void publishAsync(
-            final String type,
-            final T payloadObject,
-            final Function<T, byte[]> converter,
-            final Consumer<Event> successCallback,
-            final Consumer<Throwable> errorCallback) {
-
-        publishAsync(type, converter.apply(payloadObject), successCallback, errorCallback);
-    }
-
-    @Override
-    public void publishAsync(
-            final String type,
-            final byte[] payload,
-            final Consumer<Event> successCallback,
-            final Consumer<Throwable> errorCallback) {
-
-        publisher.publishAsync(type, payload, successCallback, errorCallback);
+    public <T> PublishResult publish(final String type, final T payloadObject, final Function<T, byte[]> converter) {
+        return publish(type, converter.apply(payloadObject));
     }
 
     @Override

@@ -17,6 +17,7 @@
 package org.nomq.core.performance;
 
 import com.hazelcast.core.Hazelcast;
+import org.junit.Assert;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
 import org.slf4j.Logger;
@@ -56,13 +57,11 @@ class PerformanceTest {
 
         final CountDownLatch publishedCounter = new CountDownLatch(nrOfEvents);
         for (int i = 0; i < nrOfEvents; i++) {
-            noMQ1.publishAsync(
-                    "performanceEvent",
-                    "Payload #" + Integer.toString(i),
-                    String::getBytes,
-                    e -> publishedCounter.countDown(),
-                    thr -> {});
+            noMQ1.publish("performanceEvent", "Payload #" + Integer.toString(i), String::getBytes)
+                    .onSuccess(event -> publishedCounter.countDown())
+                    .onFailure(thr -> Assert.fail());
         }
+
         publishedCounter.countDown();
         final long publishCompleted = System.currentTimeMillis();
 

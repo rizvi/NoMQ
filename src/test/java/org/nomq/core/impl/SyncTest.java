@@ -49,8 +49,8 @@ public class SyncTest {
                 .build()
                 .start();
 
-        noMQ1.publishAsync("testEvent", "m1", String::getBytes);
-        noMQ1.publishAsync("testEvent", "m2", String::getBytes);
+        noMQ1.publish("testEvent", "m1", String::getBytes);
+        noMQ1.publish("testEvent", "m2", String::getBytes);
         countDownLatch.await();
         Assert.assertEquals(2, r1.replayAll().count());
 
@@ -74,7 +74,7 @@ public class SyncTest {
     }
 
     private void publish(final NoMQ noMQ, final String message) {
-        noMQ.publishAsync("testEvent", message.getBytes());
+        noMQ.publish("testEvent", message.getBytes());
     }
 
     private String tempFolder() throws IOException {

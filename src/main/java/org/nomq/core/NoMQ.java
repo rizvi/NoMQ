@@ -16,7 +16,6 @@
 
 package org.nomq.core;
 
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -25,63 +24,31 @@ import java.util.function.Function;
  * NoMQBuilder} class.
  *
  * @author Tommy Wassgren
- * @see #publishAsync(String, byte[])
+ * @see #publish(String, byte[])
  */
 public interface NoMQ extends Startable<NoMQ>, Stoppable {
 
     /**
-     * Publishes the payload to the NoMQ-system (asynchronously). This is the same as using the {@link #publishAsync(String,
-     * byte[], Consumer, Consumer)}-method with empty callbacks.
+     * A non-blocking method for publishing a payload to the NoMQ-system.
      *
      * @param type    The event type.
      * @param payload The payload to publish.
+     * @return This method is non-blocking, the returned result contains methods for registering both success- and
+     * failure-callbacks.
+     * @see #publish(String, Object, java.util.function.Function)
      */
-    void publishAsync(final String type, final byte[] payload);
+    PublishResult publish(final String type, final byte[] payload);
 
     /**
-     * A non-blocking method for publishing a payload object of any type without any callbacks. This is pretty much the same as
-     * using the standard {@link #publishAsync(String, byte[], Consumer, Consumer)}-method with noop-callbacks.
-     *
-     * The object to be published can be of any type and it will be converted to a byte array via the provided converter.
+     * A non-blocking method for publishing a payload object of any type to the NoMQ-system. This is pretty much the same as
+     * using the standard {@link #publish(String, byte[])}-method but the difference is that a "payload converter" is part of
+     * the signature. The converter is used to convert from the provided object of type T to a byte[].
      *
      * @param type          The event type.
      * @param payloadObject The payload object to publish.
      * @param converter     The converter (converts from type T to type byte[]).
+     * @return This method is non-blocking, the returned result contains methods for registering both success- and
+     * failure-callbacks.
      */
-    <T> void publishAsync(final String type, T payloadObject, Function<T, byte[]> converter);
-
-    /**
-     * A non-blocking method for publishing a payload object of any type. The payload object will be converted to a byte array
-     * via the provided converter. The result of the operation is returned via callbacks (success or failure).
-     *
-     * @param type            The event type.
-     * @param payloadObject   The payload object to publish.
-     * @param converter       The converter responsible for converting the payload object to a byte array.
-     * @param successCallback The success callback, invoked when publishing has completed
-     * @param errorCallback   The failure callback, invoked if publishing fails
-     */
-    <T> void publishAsync(
-            final String type,
-            T payloadObject,
-            Function<T, byte[]> converter,
-            Consumer<Event> successCallback,
-            Consumer<Throwable> errorCallback);
-
-
-    /**
-     * A non-blocking method for publishing a payload object of any type. The result of the operation is returned via callbacks
-     * (success or failure).
-     *
-     * @param type            The event type.
-     * @param payload         The payload to publish.
-     * @param successCallback The success callback, invoked when publishing has completed
-     * @param errorCallback   The failure callback, invoked if publishing fails
-     */
-    void publishAsync(
-            final String type,
-            byte[] payload,
-            Consumer<Event> successCallback,
-            Consumer<Throwable> errorCallback);
-
-
+    <T> PublishResult publish(final String type, T payloadObject, Function<T, byte[]> converter);
 }

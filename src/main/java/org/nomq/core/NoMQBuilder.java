@@ -61,9 +61,12 @@ import java.util.function.Function;
  * To initialize NoMQ with the default values and then publish a message the following code can be used:
  * <pre>
  *     // Initialize and start NoMQ
- *     NoMQ noMQ = NoMQBuilder.builder().build().start();
+ *     NoMQ noMQ = NoMQBuilder.builder()
+ *         .build()
+ *         .start();
  *
- *     // Publish a message
+ *     // Publish a message, all messages are of type byte[] but conversion
+ *     // from arbitrary objects can be used by providing a "converter"
  *     noMQ.publish("a message".getBytes());
  * </pre>
  *
@@ -73,7 +76,8 @@ import java.util.function.Function;
  *     // Initialize NoMQ with an event subscriber
  *     NoMQ noMQ = NoMQBuilder.builder()
  *         .subscribe(e -> System.out.println(e.id()))
- *         .build().start();
+ *         .build()
+ *         .start();
  * </pre>
  *
  * @author Tommy Wassgren

@@ -72,8 +72,10 @@ public class EventPublisherTest {
                     Thread.yield(); // Yield, let the other thread publish
                 }
                 final CountDownLatch waitForOne = new CountDownLatch(1);
-                noMQ2.publishAsync("testEvent", "m1", String::getBytes, e -> waitForOne.countDown(), thr -> {
-                });
+                noMQ2.publish("testEvent", "m1", String::getBytes)
+                        .onSuccess(e -> waitForOne.countDown())
+                        .onFailure(thr -> Assert.fail());
+
                 try {
                     waitForOne.await();
                 } catch (InterruptedException e) {
@@ -88,8 +90,9 @@ public class EventPublisherTest {
                     Thread.yield(); // Yield, let the other thread publish.
                 }
                 final CountDownLatch waitForOne = new CountDownLatch(1);
-                noMQ2.publishAsync("testEvent", "m2", String::getBytes, e -> waitForOne.countDown(), thr -> {
-                });
+                noMQ2.publish("testEvent", "m2", String::getBytes)
+                        .onSuccess(e -> waitForOne.countDown())
+                        .onFailure(thr -> Assert.fail());
                 try {
                     waitForOne.await();
                 } catch (InterruptedException e) {
@@ -118,12 +121,12 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ.publishAsync(
-                "testEvent", "payload1", String::getBytes, event -> countDownLatch.countDown(), thr -> {
-                });
-        noMQ.publishAsync(
-                "testEvent", "payload2", String::getBytes, event -> countDownLatch.countDown(), thr -> {
-                });
+        noMQ.publish("testEvent", "payload1", String::getBytes)
+                .onSuccess(event -> countDownLatch.countDown())
+                .onFailure(thr -> Assert.fail());
+        noMQ.publish("testEvent", "payload2", String::getBytes)
+                .onSuccess(event -> countDownLatch.countDown())
+                .onFailure(thr -> Assert.fail());
 
         // Wait for the messages
         countDownLatch.await();
@@ -144,8 +147,8 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ.publishAsync("testEventType1", "payload1", String::getBytes); // Publish using converter
-        noMQ.publishAsync("testEventType2", "payload2", String::getBytes); // Publish using converter
+        noMQ.publish("testEventType1", "payload1", String::getBytes); // Publish using converter
+        noMQ.publish("testEventType2", "payload2", String::getBytes); // Publish using converter
 
         // Wait for the messages
         type1Counter.await();
@@ -167,8 +170,13 @@ public class EventPublisherTest {
         // Closing hazelcast causes publishing to fail
         Hazelcast.shutdownAll();
 
-        noMQ.publishAsync("testEvent", "payload1", String::getBytes, event -> fail("Should not happen"), thr -> countDownLatch.countDown());
-        noMQ.publishAsync("testEvent", "payload2", String::getBytes, event -> fail("Should not happen"), thr -> countDownLatch.countDown());
+        noMQ.publish("testEvent", "payload1", String::getBytes)
+                .onSuccess(event -> fail("Should not happen"))
+                .onFailure(thr -> countDownLatch.countDown());
+
+        noMQ.publish("testEvent", "payload2", String::getBytes)
+                .onSuccess(event -> fail("Should not happen"))
+                .onFailure(thr -> countDownLatch.countDown());
 
         // Wait for the messages
         countDownLatch.await();
@@ -194,8 +202,8 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ2.publishAsync("testEvent", "payload1", String::getBytes);
-        noMQ2.publishAsync("testEvent", "payload2", String::getBytes);
+        noMQ2.publish("testEvent", "payload1", String::getBytes);
+        noMQ2.publish("testEvent", "payload2", String::getBytes);
 
         // Wait for the messages
         countDownLatch.await();

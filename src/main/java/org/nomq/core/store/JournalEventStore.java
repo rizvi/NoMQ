@@ -25,12 +25,8 @@ import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -47,18 +43,20 @@ import java.util.stream.StreamSupport;
  * @author Tommy Wassgren
  */
 public class JournalEventStore implements EventStore, Stoppable {
+    private final EventSerializer eventSerializer;
     private final Journal journal;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public JournalEventStore(final String path) {
         journal = createJournal(path);
+        eventSerializer = new ObjectStreamEventSerializer();
     }
 
     @Override
     public void append(final Event event) {
         try {
             log.trace("Appending event [id={}]", event.id());
-            journal.write(serialize(event), Journal.WriteType.SYNC);
+            journal.write(eventSerializer.serialize(event), Journal.WriteType.SYNC);
         } catch (final IOException e) {
             throw new IllegalStateException("Unable to append event to log", e);
         }
@@ -69,7 +67,7 @@ public class JournalEventStore implements EventStore, Stoppable {
         try {
             final Iterator<Location> itr = journal.undo().iterator();
             if (itr.hasNext()) {
-                return Optional.of(deserialize(itr.next().getData()));
+                return Optional.of(eventSerializer.deserialize(itr.next().getData()));
             }
         } catch (final IOException e) {
             throw new IllegalStateException("Unable to find latest event", e);
@@ -138,23 +136,13 @@ public class JournalEventStore implements EventStore, Stoppable {
                 @Override
                 public Event next() {
                     final Location next = locationIterator.next();
-                    return deserialize(next.getData());
+                    return eventSerializer.deserialize(next.getData());
                 }
             };
 
             return createEventStream(eventIterator);
         } catch (final IOException e) {
             throw new IllegalStateException("Unable to create stream", e);
-        }
-
-    }
-
-    private Event deserialize(final byte[] data) {
-        // TODO: is this the way to go?
-        try (ObjectInputStream is = new ObjectInputStream(new ByteArrayInputStream(data))) {
-            return (Event) is.readObject();
-        } catch (final IOException | ClassNotFoundException e) {
-            throw new IllegalStateException("Unable to deserialize event", e);
         }
     }
 
@@ -170,7 +158,7 @@ public class JournalEventStore implements EventStore, Stoppable {
     private Optional<Location> findLocation(final String id) {
         try {
             for (final Location location : journal.redo()) {
-                final Event event = deserialize(location.getData());
+                final Event event = eventSerializer.deserialize(location.getData());
                 if (event.id().equals(id)) {
                     return Optional.of(location);
                 }
@@ -179,17 +167,5 @@ public class JournalEventStore implements EventStore, Stoppable {
             throw new IllegalStateException(String.format("Unable to find location [id=%s]", id));
         }
         return Optional.empty();
-    }
-
-    private byte[] serialize(final Event event) {
-        // TODO: is this the way to go?
-        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (ObjectOutputStream os = new ObjectOutputStream(bos)) {
-            os.writeObject(event);
-            os.flush();
-            return bos.toByteArray();
-        } catch (final IOException e) {
-            throw new IllegalStateException("Unable to serialize event", e);
-        }
     }
 }

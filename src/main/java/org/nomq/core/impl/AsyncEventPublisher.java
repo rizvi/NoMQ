@@ -18,13 +18,12 @@ package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
+import org.nomq.core.PublishResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
@@ -50,26 +49,15 @@ public class AsyncEventPublisher {
      * Publishes the provided payload to the NoMQ-system (asynchronously). The result of the operation is provided to the
      * callbacks (success or failure).
      *
-     * @param type            The event type.
-     * @param payload         The payload that will published with the event.
-     * @param successCallback Success - the callback that will be invoked when the publish has completed.
-     * @param failureCallback Failure - invoked when an exception occurs.
+     * @param type    The event type.
+     * @param payload The payload that will published with the event.
+     * @return The result of the publish operation, this result can later be used to chain success- and failure-handlers.
      */
-    public void publishAsync(
+    public PublishResult publishAsync(
             final String type,
-            final byte[] payload,
-            final Consumer<Event> successCallback,
-            final Consumer<Throwable> failureCallback) {
+            final byte[] payload) {
 
-        doPublish(type, payload)
-                .handleAsync((event, exception) -> {
-                    if (event != null) {
-                        successCallback.accept(event);
-                    } else {
-                        notifyExceptionHandler(exception, failureCallback);
-                    }
-                    return event;
-                }, executorService);
+        return new CompletableFutureAsyncResult(doPublish(type, payload));
     }
 
     Event create(final String type, final byte[] payload) {
@@ -78,10 +66,6 @@ public class AsyncEventPublisher {
 
     HazelcastInstance hazelcastInstance() {
         return hz;
-    }
-
-    void notifyExceptionHandler(final Throwable thr, final Consumer<Throwable> exceptionCallback) {
-        Optional.ofNullable(exceptionCallback).ifPresent(consumer -> consumer.accept(thr));
     }
 
     /**
