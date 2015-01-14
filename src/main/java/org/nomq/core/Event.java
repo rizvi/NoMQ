@@ -32,8 +32,8 @@ public interface Event {
     String id();
 
     /**
-     * This returns the payload of the event - the Event class can only carry byte[] but conversions to and from other types is
-     * possible via the {@link PayloadConverter}-interface.
+     * This returns the payload of the event - the Event class can only carry a byte[] but conversions can be made via providing
+     * converters for publishing and subscribing.
      *
      * @return The payload of the event.
      */

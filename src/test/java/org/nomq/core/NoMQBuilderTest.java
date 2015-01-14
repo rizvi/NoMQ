@@ -66,7 +66,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        noMQ.publish("testEvent", "Simple event", s -> s.getBytes());
+        noMQ.publishAsync("testEvent", "Simple event", String::getBytes);
 
         // Wait for the message to be delivered
         countDownLatch.await();
@@ -95,7 +95,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        noMQ.publish("testEvent", "Simple event", s -> s.getBytes());
+        noMQ.publishAsync("testEvent", "Simple event", String::getBytes);
 
         // Wait for the message to be delivered
         countDownLatch.await();
@@ -126,7 +126,7 @@ public class NoMQBuilderTest {
                 .start();
 
         // When
-        noMQ.publish("testEvent", "Simple event", s -> s.getBytes());
+        noMQ.publishAsync("testEvent", "Simple event", String::getBytes);
 
         // Wait for the message to be delivered
         countDownLatch.await();

@@ -18,15 +18,14 @@ package org.nomq.core.impl;
 
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
-import org.nomq.core.EventPublisherCallback;
-import org.nomq.core.ExceptionCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
-import static java.util.Arrays.stream;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 /**
@@ -36,7 +35,6 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
  * @author Tommy Wassgren
  */
 public class AsyncEventPublisher {
-    private static final ExceptionCallback[] EMPTY_EXCEPTION_CALLBACK = new ExceptionCallback[0];
     private final ExecutorService executorService;
     private final HazelcastInstance hz;
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -52,23 +50,23 @@ public class AsyncEventPublisher {
      * Publishes the provided payload to the NoMQ-system (asynchronously). The result of the operation is provided to the
      * callbacks (success or failure).
      *
-     * @param type               The event type.
-     * @param payload            The payload that will published with the event.
-     * @param publisherCallback  Success - the callback that will be invoked when the publish has completed.
-     * @param exceptionCallbacks Failure - invoked when an exception occurs.
+     * @param type            The event type.
+     * @param payload         The payload that will published with the event.
+     * @param successCallback Success - the callback that will be invoked when the publish has completed.
+     * @param failureCallback Failure - invoked when an exception occurs.
      */
     public void publishAsync(
             final String type,
             final byte[] payload,
-            final EventPublisherCallback publisherCallback,
-            final ExceptionCallback... exceptionCallbacks) {
+            final Consumer<Event> successCallback,
+            final Consumer<Throwable> failureCallback) {
 
         doPublish(type, payload)
                 .handleAsync((event, exception) -> {
                     if (event != null) {
-                        publisherCallback.eventPublished(event);
+                        successCallback.accept(event);
                     } else {
-                        notifyExceptionHandlers(exception, exceptionCallbacks);
+                        notifyExceptionHandler(exception, failureCallback);
                     }
                     return event;
                 }, executorService);
@@ -82,12 +80,8 @@ public class AsyncEventPublisher {
         return hz;
     }
 
-    ExceptionCallback[] notNull(final ExceptionCallback... exceptionCallbacks) {
-        return exceptionCallbacks == null ? EMPTY_EXCEPTION_CALLBACK : exceptionCallbacks;
-    }
-
-    void notifyExceptionHandlers(final Throwable thr, final ExceptionCallback... exceptionCallbacks) {
-        stream(notNull(exceptionCallbacks)).forEach(callback -> callback.onException(thr));
+    void notifyExceptionHandler(final Throwable thr, final Consumer<Throwable> exceptionCallback) {
+        Optional.ofNullable(exceptionCallback).ifPresent(consumer -> consumer.accept(thr));
     }
 
     /**

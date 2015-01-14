@@ -17,6 +17,7 @@
 package org.nomq.core.impl;
 
 import com.hazelcast.core.Hazelcast;
+import org.junit.Assert;
 import org.junit.Test;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
@@ -70,7 +71,14 @@ public class EventPublisherTest {
                 if (i % 500 == 0) {
                     Thread.yield(); // Yield, let the other thread publish
                 }
-                noMQ2.publish("testEvent", "m1", s -> s.getBytes());
+                final CountDownLatch waitForOne = new CountDownLatch(1);
+                noMQ2.publishAsync("testEvent", "m1", String::getBytes, e -> waitForOne.countDown(), thr -> {
+                });
+                try {
+                    waitForOne.await();
+                } catch (InterruptedException e) {
+                    Assert.fail();
+                }
             }
         }).start();
 
@@ -79,7 +87,14 @@ public class EventPublisherTest {
                 if (i % 500 == 0) {
                     Thread.yield(); // Yield, let the other thread publish.
                 }
-                noMQ2.publish("testEvent", "m2", s -> s.getBytes());
+                final CountDownLatch waitForOne = new CountDownLatch(1);
+                noMQ2.publishAsync("testEvent", "m2", String::getBytes, e -> waitForOne.countDown(), thr -> {
+                });
+                try {
+                    waitForOne.await();
+                } catch (InterruptedException e) {
+                    Assert.fail();
+                }
             }
         }).start();
 
@@ -103,8 +118,12 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ.publishAsync("testEvent", "payload1", s -> s.getBytes(), event -> countDownLatch.countDown());
-        noMQ.publishAsync("testEvent", "payload2", s -> s.getBytes(), event -> countDownLatch.countDown());
+        noMQ.publishAsync(
+                "testEvent", "payload1", String::getBytes, event -> countDownLatch.countDown(), thr -> {
+                });
+        noMQ.publishAsync(
+                "testEvent", "payload2", String::getBytes, event -> countDownLatch.countDown(), thr -> {
+                });
 
         // Wait for the messages
         countDownLatch.await();
@@ -125,8 +144,8 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ.publishAsync("testEventType1", "payload1", s -> s.getBytes()); // Publish using converter
-        noMQ.publishAsync("testEventType2", "payload2", s -> s.getBytes()); // Publish using converter
+        noMQ.publishAsync("testEventType1", "payload1", String::getBytes); // Publish using converter
+        noMQ.publishAsync("testEventType2", "payload2", String::getBytes); // Publish using converter
 
         // Wait for the messages
         type1Counter.await();
@@ -148,8 +167,8 @@ public class EventPublisherTest {
         // Closing hazelcast causes publishing to fail
         Hazelcast.shutdownAll();
 
-        noMQ.publishAsync("testEvent", "payload1", s -> s.getBytes(), event -> fail("Should not happen"), thr -> countDownLatch.countDown());
-        noMQ.publishAsync("testEvent", "payload2", s -> s.getBytes(), event -> fail("Should not happen"), thr -> countDownLatch.countDown());
+        noMQ.publishAsync("testEvent", "payload1", String::getBytes, event -> fail("Should not happen"), thr -> countDownLatch.countDown());
+        noMQ.publishAsync("testEvent", "payload2", String::getBytes, event -> fail("Should not happen"), thr -> countDownLatch.countDown());
 
         // Wait for the messages
         countDownLatch.await();
@@ -175,8 +194,8 @@ public class EventPublisherTest {
                 .build()
                 .start();
 
-        noMQ2.publish("testEvent", "payload1", s -> s.getBytes());
-        noMQ2.publish("testEvent", "payload2", s -> s.getBytes());
+        noMQ2.publishAsync("testEvent", "payload1", String::getBytes);
+        noMQ2.publishAsync("testEvent", "payload2", String::getBytes);
 
         // Wait for the messages
         countDownLatch.await();

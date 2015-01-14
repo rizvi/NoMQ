@@ -22,14 +22,14 @@ contains:
 * an event type that describes what kind of event you're triggering
 * a payload that is the actual event data.
 
-When subscribing to events you must register a subscriber of type _EventSubscriber_.
+When subscribing to events you must register a subscriber using the _subscribe_ method.
 
-The code below creates a NoMQ-instance using the _NoMQBuilder_. It also registers an _EventSubscriber_ that simply echoes the id
+The code below creates a NoMQ-instance using the _NoMQBuilder_. It also registers an event subscriber that simply echoes the id
 of all received events on _System.out_.
 
 ```java
 NoMQ noMQ = NoMQBuilder.builder()
-    .subscribe(e -> System.out.println(e.id()))
+    .subscribe(event -> System.out.println(event.id())) // register subscriber
     .build()  // Create the NoMQ-instance
     .start(); // Then start it
 
@@ -38,18 +38,18 @@ noMQ.publishAsync("myEvent", "Some payload".getBytes());
 ```
 
 The payload for an event is always a byte array. This may seem like a strict limitation but there is a simple solution. In order
-to publish payloads of any type simple convert the payload to a byte array using a _PayloadConverter_. The code below uses a
+to publish payloads of any type simple convert the payload to a byte array using a payload converter. The code below uses a
 converter that converts a payload of type _String_ to a _byte[]_.
 
 ```java
 noMQ.publishAsync(
-    "myEvent",              // Event name
-    "Some payload",         // The payload (String)
-    str -> str.getBytes()); // Converter
+    "myEvent",          // Event name
+    "Some payload",     // The payload (String)
+    String::getBytes);  // Converter
 ```
 
-The published byte array is part of the event objected that is delivered to the _EventSubscribers_. If you want to subscribe to
-the payload in some other format than a byte array it is possible to use the _PayloadConverter_ for
+The published byte array is part of the event objected that is delivered to the event subscribers. If you want to subscribe to
+the payload in some other format than a byte array it is possible to provide a payload converter for
 subscriptions as well.
 
 ```java

@@ -30,10 +30,14 @@ import org.nomq.core.store.JournalEventStore;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Setup of the NoMQ-system is done via this class. The builder design pattern is used and all the relevant settings can be
@@ -83,7 +87,7 @@ public final class NoMQBuilder {
     public static final int DEFAULT_SYNC_ATTEMPTS = 3;
 
 
-    private EventSubscriber[] eventSubscribers;
+    private final Collection<Consumer<Event>> eventSubscribers = new ArrayList<>();
     private ScheduledExecutorService executorService;
     private HazelcastInstance hz;
     private int maxSyncAttempts;
@@ -126,7 +130,7 @@ public final class NoMQBuilder {
         final HazelcastInstance hz = hazelcast();
         final String topic = topic();
         final ScheduledExecutorService executorService = executorService();
-        final EventSubscriber[] eventSubscribers = eventSubscribers();
+        final Collection<Consumer<Event>> eventSubscribers = eventSubscribers();
         final long syncTimeout = syncTimeout();
         final int maxSyncAttempts = syncAttempts();
         final AsyncEventPublisher eventPublisher = new AsyncEventPublisher(topic, hz, executorService);
@@ -257,15 +261,11 @@ public final class NoMQBuilder {
     /**
      * This is where you add event subscribers that will receive events.
      *
-     * @param eventSubscribers The event subscribers.
+     * @param eventSubscriber The event subscribers.
      * @return The builder to allow further chaining.
      */
-    public NoMQBuilder subscribe(final EventSubscriber... eventSubscribers) {
-        if (this.eventSubscribers == null) {
-            this.eventSubscribers = eventSubscribers;
-        } else {
-            this.eventSubscribers = merge(this.eventSubscribers, eventSubscribers);
-        }
+    public NoMQBuilder subscribe(final Consumer<Event> eventSubscriber) {
+        eventSubscribers.add(eventSubscriber);
         return this;
     }
 
@@ -278,10 +278,10 @@ public final class NoMQBuilder {
      * @return The builder to allow for further chaining.
      */
     public <T> NoMQBuilder subscribe(
-            final String type, final PayloadSubscriber<T> payloadSubscriber, final PayloadConverter<byte[], T> converter) {
+            final String type, final Consumer<T> payloadSubscriber, final Function<byte[], T> converter) {
         subscribe(event -> {
             if (type.equals(event.type())) {
-                payloadSubscriber.onPayload(converter.convert(event.payload()));
+                payloadSubscriber.accept(converter.apply(event.payload()));
             }
         });
         return this;
@@ -338,10 +338,7 @@ public final class NoMQBuilder {
         return new JournalEventStore(folder);
     }
 
-    private EventSubscriber[] eventSubscribers() {
-        if (eventSubscribers == null) {
-            eventSubscribers = new EventSubscriber[0];
-        }
+    private Collection<Consumer<Event>> eventSubscribers() {
         return eventSubscribers;
     }
 
@@ -358,15 +355,6 @@ public final class NoMQBuilder {
         }
 
         return hz;
-    }
-
-    private EventSubscriber[] merge(final EventSubscriber[] first, final EventSubscriber[] second) {
-        final int firstLen = first.length;
-        final int secondLen = second.length;
-        final EventSubscriber[] merged = new EventSubscriber[firstLen + secondLen];
-        System.arraycopy(first, 0, merged, 0, firstLen);
-        System.arraycopy(second, 0, merged, firstLen, secondLen);
-        return merged;
     }
 
     private EventStore playback() {

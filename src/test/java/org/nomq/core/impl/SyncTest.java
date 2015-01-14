@@ -20,7 +20,6 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.junit.Assert;
 import org.junit.Test;
-import org.nomq.core.Event;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
 import org.nomq.core.store.JournalEventStore;
@@ -54,8 +53,8 @@ public class SyncTest {
                 .build()
                 .start();
 
-        publish(noMQ1, "m1");
-        publish(noMQ1, "m2");
+        noMQ1.publishAsync("testEvent", "m1", String::getBytes);
+        noMQ1.publishAsync("testEvent", "m2", String::getBytes);
         countDownLatch.await();
         Assert.assertEquals(2, r1.replayAll().count());
 
@@ -79,8 +78,7 @@ public class SyncTest {
     }
 
     private void publish(final NoMQ noMQ, final String message) {
-        final Event event = noMQ.publish("testEvent", message.getBytes());
-        log.debug("Published message [id={}]", event.id());
+        noMQ.publishAsync("testEvent", message.getBytes());
     }
 
     private String tempFolder() throws IOException {

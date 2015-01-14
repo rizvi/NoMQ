@@ -59,8 +59,9 @@ class PerformanceTest {
             noMQ1.publishAsync(
                     "performanceEvent",
                     "Payload #" + Integer.toString(i),
-                    s -> s.getBytes(),
-                    e -> publishedCounter.countDown());
+                    String::getBytes,
+                    e -> publishedCounter.countDown(),
+                    thr -> {});
         }
         publishedCounter.countDown();
         final long publishCompleted = System.currentTimeMillis();

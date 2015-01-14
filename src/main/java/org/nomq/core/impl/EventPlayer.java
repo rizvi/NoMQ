@@ -18,17 +18,18 @@ package org.nomq.core.impl;
 
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
-import org.nomq.core.EventSubscriber;
 import org.nomq.core.Startable;
 import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -38,7 +39,7 @@ import java.util.stream.Stream;
  * @author Tommy Wassgren
  */
 public class EventPlayer implements Startable<EventPlayer>, Stoppable {
-    private final EventSubscriber[] eventSubscribers;
+    private final Collection<Consumer<Event>> eventSubscribers;
     private final ExecutorService executorService;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final EventStore playbackEventStore;
@@ -52,12 +53,12 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
             final EventStore playbackEventStore,
             final EventStore recordEventStore,
             final ExecutorService executorService,
-            final EventSubscriber... eventSubscribers) {
+            final Collection<Consumer<Event>> eventSubscribers) {
         this.playbackQueue = playbackQueue;
         this.playbackEventStore = playbackEventStore;
         this.recordEventStore = recordEventStore;
         this.executorService = executorService;
-        this.eventSubscribers = eventSubscribers == null ? new EventSubscriber[0] : eventSubscribers;
+        this.eventSubscribers = eventSubscribers;
     }
 
     @Override
@@ -94,9 +95,9 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
                 log.debug("Play event [id={}]", event.id());
 
                 // TODO: Error handling
-                for (final EventSubscriber eventSubscriber : eventSubscribers) {
-                    eventSubscriber.onEvent(event);
-                }
+                eventSubscribers.forEach(eventSubscriber -> {
+                    eventSubscriber.accept(event);
+                });
                 playbackEventStore.append(event);
             }
         });
