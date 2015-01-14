@@ -42,8 +42,8 @@ for this. Since Hazelcast relies heavy on serialization (Hazelcast distributes t
 ways of transforming objects to byte arrays. These include standard Java Serialization where you implement
 ```java.io.Serializable```, serialization using HazelCast's ```DataSerializable``` or ```Portable``` etc. We find that these
 restrictions (```Serializable```, ```Portable``` etc) are something that we don't want in the NoMQ-API. NoMQ-users should be
-able to publish any type of event and therefore the entire responsibility of serialization/deserialization is in your hands
-- that's fair, isn't it?
+able to publish any type of event and therefore the entire responsibility of serialization/deserialization is in your hands,
+that's fair, isn't it?
 
 With that being said, in order to publish payloads of *any* type simply convert the payload to a byte array using a
 *payload converter*. The code below uses a converter that converts a payload of type _String_ to a _byte[]_.
@@ -71,7 +71,37 @@ NoMQ noMQ = NoMQBuilder.builder()
     .start();
 
 // Publish using a converter as in the example above
-noMQ.publishAsync("myEvent", "A string", str -> str.getBytes());
+noMQ.publish("myEvent", "A string", str -> str.getBytes());
+```
+
+## Handling success and failure
+NoMQ is totally non-blocking. This means that whenever you publish an event it is done in an asynchronous way. But what if you
+want to know if something failed or find out the details about the event that was (eventually) published? Well, then you simply
+use the `PublishResult` class as in the example below:
+
+```java
+noMQ.publish("myEvent", "A string", str -> str.getBytes())
+    .onSuccess(event -> System.out.println("Event was published: " + event.getId()))
+    .onFailure(thr -> {/* Do something to handle the error. */});
+```
+
+Easy peasy, isn't it?
+
+## Late join
+TODO:
+
+## Durability
+TODO:
+
+## Dependecies (Maven)
+NoMQ is available as a Maven artefact from TODO:...
+
+```
+    <dependency>
+        <groupId>org.nomq</groupId>
+        <artifactId>nomq-core</artifactId>
+        <version>TODO</version>
+    </dependency>
 ```
 
 ## Configuring the cluster
