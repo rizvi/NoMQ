@@ -80,8 +80,8 @@ wanted to know if something failed or find out the details about the event that 
 simply chain the callback handlers (via a class called `PublishResult`) as in the example below:
 
 ```java
-noMQ.publish("myEvent", "A string", str -> str.getBytes())
-    .onSuccess(event -> System.out.println("Event was published: " + event.getId()))
+noMQ.publish("myEvent".getBytes())
+    .onSuccess(event -> System.out.println("Event was published: " + event.id()))
     .onFailure(thr -> {/* Do something to handle the error. */});
 ```
 
