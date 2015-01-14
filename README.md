@@ -75,8 +75,8 @@ noMQ.publish("myEvent", "A string", str -> str.getBytes());
 ```
 
 ## Handling success and failure
-NoMQ is totally non-blocking. This means that whenever you publish an event it is done in an asynchronous way. But what if you
-want to know if something failed or find out the details about the event that was (eventually) published? Well, then you simply
+NoMQ is totally non-blocking. This means that whenever you publish an event the publishing is asynchronous. But what if you
+wanted to know if something failed or find out the details about the event that was (eventually) published? Well, then you simply
 use the `PublishResult` class as in the example below:
 
 ```java
