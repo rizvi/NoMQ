@@ -19,7 +19,6 @@ package org.nomq.core.impl;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.Startable;
-import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,7 @@ import java.util.stream.Stream;
  *
  * @author Tommy Wassgren
  */
-public class EventPlayer implements Startable<EventPlayer>, Stoppable {
+public class EventPlayer implements Startable<EventPlayer>, AutoCloseable {
     private final Collection<Consumer<Event>> eventSubscribers;
     private final ExecutorService executorService;
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -62,16 +61,16 @@ public class EventPlayer implements Startable<EventPlayer>, Stoppable {
     }
 
     @Override
+    public void close() {
+        runner.cancel(true);
+        runner = null;
+    }
+
+    @Override
     public EventPlayer start() {
         sync();
         startPlaying();
         return this;
-    }
-
-    @Override
-    public void stop() {
-        runner.cancel(true);
-        runner = null;
     }
 
     private void startPlaying() {

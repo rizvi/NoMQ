@@ -26,7 +26,7 @@ import java.util.function.Function;
  * @author Tommy Wassgren
  * @see #publish(String, byte[])
  */
-public interface NoMQ extends Startable<NoMQ>, Stoppable {
+public interface NoMQ extends Startable<NoMQ>, AutoCloseable {
 
     /**
      * A non-blocking method for publishing a payload to the NoMQ-system.

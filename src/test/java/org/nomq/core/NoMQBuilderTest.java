@@ -18,9 +18,8 @@ package org.nomq.core;
 
 import com.hazelcast.core.Hazelcast;
 import org.junit.Test;
-import org.nomq.core.store.JournalEventStore;
+import org.nomq.store.journalio.JournalEventStore;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class NoMQBuilderTest {
     @Test
-    public void testAdvancedSetup() throws InterruptedException, IOException {
+    public void testAdvancedSetup() throws Exception {
         // Given
         final Path recordFolder = Files.createTempDirectory("org.nomq.test");
         final JournalEventStore recordEventStore = new JournalEventStore(recordFolder.toString());
@@ -75,40 +74,12 @@ public class NoMQBuilderTest {
         assertEquals(1, result.size());
 
         // Cleanup
-        noMQ.stop();
+        noMQ.close();
     }
 
-    @Test
-    public void testSetupWithFolders() throws InterruptedException, IOException {
-        // Given
-        final Path recordFolder = Files.createTempDirectory("org.nomq.test");
-        final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
-
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final List<Event> result = new ArrayList<>();
-        final NoMQ noMQ = NoMQBuilder.builder()
-                .playback(playbackFolder.toString())
-                .record(recordFolder.toString())
-                .subscribe(result::add)
-                .subscribe(e -> countDownLatch.countDown())
-                .build()
-                .start();
-
-        // When
-        noMQ.publish("testEvent", "Simple event", String::getBytes);
-
-        // Wait for the message to be delivered
-        countDownLatch.await();
-
-        // Then
-        assertEquals(1, result.size());
-
-        // Cleanup
-        noMQ.stop();
-    }
 
     @Test
-    public void testSetupWithMultipleSubscribers() throws InterruptedException, IOException {
+    public void testSetupWithMultipleSubscribers() throws Exception {
         // Given
         final Path recordFolder = Files.createTempDirectory("org.nomq.test");
         final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
@@ -117,8 +88,6 @@ public class NoMQBuilderTest {
         final List<Event> result2 = new ArrayList<>();
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final NoMQ noMQ = NoMQBuilder.builder()
-                .playback(playbackFolder.toString())
-                .record(recordFolder.toString())
                 .subscribe(result1::add)
                 .subscribe(result2::add)
                 .subscribe(e -> countDownLatch.countDown())
@@ -136,6 +105,6 @@ public class NoMQBuilderTest {
         assertEquals(1, result2.size());
 
         // Cleanup
-        noMQ.stop();
+        noMQ.close();
     }
 }

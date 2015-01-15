@@ -23,8 +23,6 @@ import org.nomq.core.NoMQBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -33,22 +31,18 @@ import java.util.concurrent.CountDownLatch;
 class PerformanceTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static void main(final String[] args) throws IOException, InterruptedException {
+    public static void main(final String[] args) throws Exception {
         new PerformanceTest().sendLoadsOfEvents();
     }
 
-    private void sendLoadsOfEvents() throws IOException, InterruptedException {
+    private void sendLoadsOfEvents() throws Exception {
         final NoMQ noMQ1 = NoMQBuilder.builder()
-                .record(tempFolder())
-                .playback(tempFolder())
                 .build()
                 .start();
 
         final int nrOfEvents = 100000;
         final CountDownLatch subscriptionCounter = new CountDownLatch(nrOfEvents);
         final NoMQ noMQ2 = NoMQBuilder.builder()
-                .record(tempFolder())
-                .playback(tempFolder())
                 .subscribe(e -> subscriptionCounter.countDown())
                 .build()
                 .start();
@@ -68,14 +62,10 @@ class PerformanceTest {
         subscriptionCounter.await();
         final long subscriptionCompleted = System.currentTimeMillis();
 
-        noMQ1.stop();
-        noMQ2.stop();
+        noMQ1.close();
+        noMQ2.close();
 
         log.info("Performance test completed: [total={}, publish={}]", (subscriptionCompleted - start), (publishCompleted - start));
         Hazelcast.shutdownAll();
-    }
-
-    private String tempFolder() throws IOException {
-        return Files.createTempDirectory("org.nomq.test").toString();
     }
 }

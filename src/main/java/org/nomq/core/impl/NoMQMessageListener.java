@@ -20,7 +20,6 @@ import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
-import org.nomq.core.Stoppable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +36,7 @@ import static org.nomq.core.impl.NoMQHelper.isSyncRequest;
  *
  * @author Tommy Wassgren
  */
-class NoMQMessageListener implements MessageListener<Event>, Stoppable {
+class NoMQMessageListener implements MessageListener<Event>, AutoCloseable {
     private final LockTemplate lockTemplate;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final BlockingQueue<Event> playbackQueue;
@@ -50,6 +49,11 @@ class NoMQMessageListener implements MessageListener<Event>, Stoppable {
         this.playbackQueue = playbackQueue;
         tempPlaybackQueue = new LinkedBlockingQueue<>();
         lockTemplate = new LockTemplate(new ReentrantLock(), 0);
+    }
+
+    @Override
+    public void close() {
+        synced = false;
     }
 
     @Override
@@ -68,11 +72,6 @@ class NoMQMessageListener implements MessageListener<Event>, Stoppable {
                 }
             }
         });
-    }
-
-    @Override
-    public void stop() {
-        synced = false;
     }
 
     void sync(final Set<String> processedIds) {

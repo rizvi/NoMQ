@@ -14,13 +14,18 @@
  *  limitations under the License.
  */
 
-package org.nomq.core;
+package org.nomq.core.store.mem;
+
+import org.nomq.core.EventStore;
+import org.nomq.core.store.AbstractEventStoreTest;
 
 /**
- * Lifecycle interface for stoppable components.
  *
  * @author Tommy Wassgren
  */
-public interface Stoppable {
-    void stop();
+public class InMemoryEventStoreTest extends AbstractEventStoreTest {
+    @Override
+    protected EventStore createEventStore() throws Exception {
+        return new InMemoryEventStore();
+    }
 }

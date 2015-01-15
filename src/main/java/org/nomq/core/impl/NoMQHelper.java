@@ -20,6 +20,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.ITopic;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
+import org.nomq.core.support.DefaultEvent;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -37,7 +38,7 @@ class NoMQHelper {
     }
 
     static Event createEvent(final String id, final String type, final byte[] payload) {
-        return new SerializableEvent(id, type, payload);
+        return new DefaultEvent(id, type, payload);
     }
 
     static String generateSyncRequestId(final EventStore recordEventStore) {

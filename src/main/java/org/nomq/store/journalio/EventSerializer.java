@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.store;
+package org.nomq.store.journalio;
 
 import org.nomq.core.Event;
 

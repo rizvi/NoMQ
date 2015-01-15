@@ -25,11 +25,8 @@ import org.nomq.core.impl.AsyncEventPublisher;
 import org.nomq.core.impl.EventPlayer;
 import org.nomq.core.impl.EventRecorder;
 import org.nomq.core.impl.NoMQImpl;
-import org.nomq.core.store.JournalEventStore;
+import org.nomq.core.store.mem.InMemoryEventStore;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
@@ -118,9 +115,7 @@ public final class NoMQBuilder {
      * Build the NoMQ-instance based on the settings you provided in the earlier steps.
      *
      * @return A NoMQ-instance that has not yet been started.
-     * @see #playback(String)
      * @see #playback(org.nomq.core.EventStore)
-     * @see #record(String)
      * @see #record(org.nomq.core.EventStore)
      * @see #hazelcast(com.hazelcast.config.Config)
      * @see #hazelcast(HazelcastInstance)
@@ -191,29 +186,10 @@ public final class NoMQBuilder {
     }
 
     /**
-     * This sets the folder to use for the playback event store. If this value is set the folder must be writeable and the
-     * standard event store is used ({@link org.nomq.core.store.JournalEventStore}.
-     *
-     * If you wish to provide your own playback event store simply build the NoMQBuilder-instance using the {@link
-     * #playback(org.nomq.core.EventStore)}-method.
-     *
-     * @param folder The folder to use for the playback event store.
-     * @return The builder to allow further chaining.
-     * @see #playback(org.nomq.core.EventStore)
-     */
-    public NoMQBuilder playback(final String folder) {
-        assertThatFolderIsWriteable(folder);
-        this.playbackEventStore = createDefaultStore(folder);
-        return this;
-    }
-
-    /**
-     * Create the NoMQBuilder-instance using a custom event store for playback. To use the default playback event store invoke
-     * the {@link #playback(String)}-method with a valid folder or simply don't invoke any of the playback-methods.
+     * Create the NoMQBuilder-instance using a custom event store for playback.
      *
      * @param playbackEventStore The playback event store.
      * @return The builder to allow further chaining.
-     * @see #playback(String)
      */
     public NoMQBuilder playback(final EventStore playbackEventStore) {
         this.playbackEventStore = playbackEventStore;
@@ -232,30 +208,12 @@ public final class NoMQBuilder {
         return this;
     }
 
-    /**
-     * This sets the folder to use for the record event store. If this value is set the folder must be writeable and the
-     * standard event store is used ({@link org.nomq.core.store.JournalEventStore}.
-     *
-     * If you wish to provide your own record event store simply build the NoMQBuilder-instance using the {@link
-     * #record(org.nomq.core.EventStore)}-method.
-     *
-     * @param folder The folder to use for the record event store.
-     * @return The builder to allow further chaining.
-     * @see #record(org.nomq.core.EventStore)
-     */
-    public NoMQBuilder record(final String folder) {
-        assertThatFolderIsWriteable(folder);
-        this.recordEventStore = createDefaultStore(folder);
-        return this;
-    }
 
     /**
-     * Create the NoMQBuilder-instance using a custom event store for recording. To use the default recording event store invoke
-     * the {@link #record(String)}-method with a valid folder or simply don't invoke any of the record-methods.
+     * Create the NoMQBuilder-instance using a custom event store for recording.
      *
      * @param recordEventStore The record event store.
      * @return The builder to allow further chaining.
-     * @see #record(String)
      */
     public NoMQBuilder record(final EventStore recordEventStore) {
         this.recordEventStore = recordEventStore;
@@ -327,19 +285,8 @@ public final class NoMQBuilder {
         return this;
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void assertThatFolderIsWriteable(final String folder) {
-        final File f = new File(folder);
-        f.mkdirs();
-        final Path path = f.toPath();
-
-        if (!Files.isDirectory(path) || !Files.isWritable(path)) {
-            throw new IllegalStateException(String.format("%s is an invalid path, make sure it is writeable", folder));
-        }
-    }
-
-    private EventStore createDefaultStore(final String folder) {
-        return new JournalEventStore(folder);
+    private EventStore createDefaultStore() {
+        return new InMemoryEventStore();
     }
 
     private Collection<Consumer<Event>> eventSubscribers() {
@@ -363,8 +310,7 @@ public final class NoMQBuilder {
 
     private EventStore playback() {
         if (playbackEventStore == null) {
-            assertThatFolderIsWriteable(DEFAULT_PLAYBACK_FOLDER);
-            playbackEventStore = createDefaultStore(DEFAULT_PLAYBACK_FOLDER);
+            playbackEventStore = createDefaultStore();
         }
 
         return playbackEventStore;
@@ -380,8 +326,7 @@ public final class NoMQBuilder {
 
     private EventStore record() {
         if (recordEventStore == null) {
-            assertThatFolderIsWriteable(DEFAULT_RECORD_FOLDER);
-            recordEventStore = createDefaultStore(DEFAULT_RECORD_FOLDER);
+            recordEventStore = createDefaultStore();
         }
         return recordEventStore;
     }

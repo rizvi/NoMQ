@@ -23,7 +23,7 @@ import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
-import org.nomq.core.store.JournalEventStore;
+import org.nomq.store.journalio.JournalEventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +47,7 @@ public class EventPublisherTest {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Test
-    public void testMultiplePublishersAndVerifyOrderOfMessages() throws IOException, InterruptedException {
+    public void testMultiplePublishersAndVerifyOrderOfMessages() throws Exception {
         final int nrOfMessages = 10000;
         final CountDownLatch countDownLatch = new CountDownLatch(nrOfMessages);
 
@@ -107,12 +107,12 @@ public class EventPublisherTest {
         assertStores(p1, p2);
 
         // Cleanup
-        noMQ1.stop();
-        noMQ2.stop();
+        noMQ1.close();
+        noMQ2.close();
     }
 
     @Test
-    public void testPubSubAsync() throws IOException, InterruptedException {
+    public void testPubSubAsync() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
 
         final NoMQ noMQ = NoMQBuilder.builder()
@@ -131,11 +131,11 @@ public class EventPublisherTest {
         // Wait for the messages
         countDownLatch.await();
 
-        noMQ.stop();
+        noMQ.close();
     }
 
     @Test
-    public void testPubSubOfPayloadAsync() throws IOException, InterruptedException {
+    public void testPubSubOfPayloadAsync() throws Exception {
         final CountDownLatch type1Counter = new CountDownLatch(1);
         final CountDownLatch type2Counter = new CountDownLatch(1);
 
@@ -154,11 +154,11 @@ public class EventPublisherTest {
         type1Counter.await();
         type2Counter.await();
 
-        noMQ.stop();
+        noMQ.close();
     }
 
     @Test
-    public void testPubSubWithFailureAsync() throws IOException, InterruptedException {
+    public void testPubSubWithFailureAsync() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
 
         final NoMQ noMQ = NoMQBuilder.builder()
@@ -181,11 +181,11 @@ public class EventPublisherTest {
         // Wait for the messages
         countDownLatch.await();
 
-        noMQ.stop();
+        noMQ.close();
     }
 
     @Test
-    public void testPubSubWithMultipleHazelcastInstances() throws IOException, InterruptedException {
+    public void testPubSubWithMultipleHazelcastInstances() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(2);
         final EventStore playbackEventStore = newEventStore();
 
@@ -216,8 +216,8 @@ public class EventPublisherTest {
         assertEquals("payload2", new String(event.payload()));
 
         // Cleanup
-        noMQ1.stop();
-        noMQ2.stop();
+        noMQ1.close();
+        noMQ2.close();
     }
 
     private void assertStores(final EventStore s1, final EventStore s2) {

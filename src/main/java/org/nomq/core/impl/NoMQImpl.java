@@ -21,7 +21,7 @@ import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
 import org.nomq.core.PublishResult;
 import org.nomq.core.Startable;
-import org.nomq.core.Stoppable;
+import org.nomq.core.support.StreamUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,15 +58,24 @@ public class NoMQImpl implements NoMQ {
         this.publisher = publisher;
     }
 
-
     @Override
-    public PublishResult publish(final String type, final byte[] payload) {
-        return publisher.publishAsync(type, payload);
+    public void close() {
+        close(publisher);
+        close(recorder);
+        close(player);
+        close(recordEventStore);
+        close(playbackEventStore);
+        hz.getLifecycleService().shutdown();
     }
 
     @Override
     public <T> PublishResult publish(final String type, final T payloadObject, final Function<T, byte[]> converter) {
         return publish(type, converter.apply(payloadObject));
+    }
+
+    @Override
+    public PublishResult publish(final String type, final byte[] payload) {
+        return publisher.publishAsync(type, payload);
     }
 
     @Override
@@ -81,29 +90,15 @@ public class NoMQImpl implements NoMQ {
         return this;
     }
 
-    @Override
-    public void stop() {
-        stop(publisher);
-        stop(recorder);
-        stop(player);
-        stop(recordEventStore);
-        stop(playbackEventStore);
-        hz.getLifecycleService().shutdown();
+    private void close(final Object closeable) {
+        if (closeable instanceof AutoCloseable) {
+            StreamUtil.closeSilently((AutoCloseable) closeable);
+        }
     }
 
     private void start(final Object startable) {
         if (startable instanceof Startable) {
             ((Startable) startable).start();
-        }
-    }
-
-    private void stop(final Object stoppable) {
-        if (stoppable instanceof Stoppable) {
-            try {
-                ((Stoppable) stoppable).stop();
-            } catch (final Throwable throwable) {
-                log.error("Error while invoking stop", throwable);
-            }
         }
     }
 }

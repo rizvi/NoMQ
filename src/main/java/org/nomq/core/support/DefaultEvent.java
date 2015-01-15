@@ -14,11 +14,12 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.impl;
+package org.nomq.core.support;
 
 import org.nomq.core.Event;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,17 +28,31 @@ import static java.util.Objects.requireNonNull;
  *
  * @author Tommy Wassgren
  */
-class SerializableEvent implements Event, Serializable {
+public class DefaultEvent implements Event, Serializable {
     private static final long serialVersionUID = 1L;
     private static final byte[] EMPTY = new byte[0];
     private final String id;
     private final byte[] payload;
     private final String type;
 
-    SerializableEvent(final String id, final String type, final byte[] payload) {
-        this.id = requireNonNull(id);
-        this.type = requireNonNull(type);
+    public DefaultEvent(final String id, final String type, final byte[] payload) {
+        this.id = requireNonNull(id, "Event id must not be null");
+        this.type = requireNonNull(type, "Event type must not be null");
         this.payload = payload == null ? EMPTY : payload;
+    }
+
+    @Override
+    public boolean equals(final Object otherObject) {
+        if (otherObject instanceof DefaultEvent) {
+            final DefaultEvent otherEvent = (DefaultEvent) otherObject;
+            return Objects.equals(id, otherEvent.id) && Objects.equals(type, otherEvent.type);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, type);
     }
 
     @Override

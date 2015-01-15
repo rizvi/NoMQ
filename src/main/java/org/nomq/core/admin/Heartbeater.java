@@ -20,7 +20,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
-import org.nomq.core.store.JournalEventStore;
+import org.nomq.store.journalio.JournalEventStore;
 
 import java.io.IOException;
 import java.nio.file.Files;

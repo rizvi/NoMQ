@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.store;
+package org.nomq.store.journalio;
 
 import org.nomq.core.Event;
 
@@ -27,11 +27,16 @@ import java.io.ObjectOutputStream;
 /**
  * @author Tommy Wassgren
  */
-public class ObjectStreamEventSerializer implements EventSerializer {
+class ObjectStreamEventSerializer implements EventSerializer {
     @Override
     public Event deserialize(final byte[] data) {
         try (ObjectInputStream is = new ObjectInputStream(new ByteArrayInputStream(data))) {
-            return (Event) is.readObject();
+            final Object obj = is.readObject();
+            if (obj instanceof Event) {
+                return Event.class.cast(obj);
+            }
+            throw new IllegalStateException("Deserialization failed, incorrect type "
+                    + (obj != null ? obj.getClass() : "null"));
         } catch (final IOException | ClassNotFoundException e) {
             throw new IllegalStateException("Unable to deserialize event", e);
         }
@@ -41,6 +46,7 @@ public class ObjectStreamEventSerializer implements EventSerializer {
     public byte[] serialize(final Event event) {
         try (final ByteArrayOutputStream bos = new ByteArrayOutputStream();
              final ObjectOutputStream os = new ObjectOutputStream(bos)) {
+
             os.writeObject(event);
             os.flush();
             return bos.toByteArray();

@@ -20,7 +20,6 @@ import com.hazelcast.core.HazelcastInstance;
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.Startable;
-import org.nomq.core.Stoppable;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -31,7 +30,7 @@ import java.util.concurrent.BlockingQueue;
  *
  * @author Tommy Wassgren
  */
-public class EventRecorder implements Startable<EventRecorder>, Stoppable {
+public class EventRecorder implements Startable<EventRecorder>, AutoCloseable {
     private final EventSynchronizer eventSynchronizer;
     private final HazelcastInstance hz;
     private String listenerId;
@@ -58,20 +57,19 @@ public class EventRecorder implements Startable<EventRecorder>, Stoppable {
     }
 
     @Override
-    public EventRecorder start() {
-        sync();
-        return this;
-    }
-
-    @Override
-    public void stop() {
+    public void close() {
         if (messageListener != null) {
-            messageListener.stop();
+            messageListener.close();
         }
         NoMQHelper.sharedTopic(hz, topic).removeMessageListener(listenerId);
         listenerId = null;
     }
 
+    @Override
+    public EventRecorder start() {
+        sync();
+        return this;
+    }
 
     /**
      * Catches up from the remote collection. Retrieves all elements from the remote collection (based on the "latest" entry in
