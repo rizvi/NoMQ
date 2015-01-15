@@ -23,7 +23,7 @@ import org.junit.Test;
 import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
-import org.nomq.core.store.mem.InMemoryEventStore;
+import org.nomq.core.support.InMemoryEventStore;
 
 import java.util.concurrent.CountDownLatch;
 

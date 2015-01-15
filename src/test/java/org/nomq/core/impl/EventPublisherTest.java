@@ -23,13 +23,11 @@ import org.nomq.core.Event;
 import org.nomq.core.EventStore;
 import org.nomq.core.NoMQ;
 import org.nomq.core.NoMQBuilder;
-import org.nomq.store.journalio.JournalEventStore;
+import org.nomq.core.support.InMemoryEventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
@@ -190,15 +188,12 @@ public class EventPublisherTest {
         final EventStore playbackEventStore = newEventStore();
 
         final NoMQ noMQ1 = NoMQBuilder.builder()
-                .record(newEventStore())
                 .playback(playbackEventStore)
                 .subscribe(e -> countDownLatch.countDown())
                 .build()
                 .start();
 
         final NoMQ noMQ2 = NoMQBuilder.builder()
-                .record(newEventStore())
-                .playback(newEventStore())
                 .build()
                 .start();
 
@@ -232,7 +227,6 @@ public class EventPublisherTest {
     }
 
     private EventStore newEventStore() throws IOException {
-        final Path tempDirectory = Files.createTempDirectory("org.nomq.test");
-        return new JournalEventStore(tempDirectory.toString());
+        return new InMemoryEventStore();
     }
 }

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package org.nomq.core.store.mem;
+package org.nomq.core.support;
 
 import org.nomq.core.Event;
 import org.nomq.core.EventStore;
@@ -25,6 +25,10 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
+ * The default non-durable EventStore, this simple implementation uses an in-memory List that contains the events. Since it is
+ * only in-memory events will not be able to survive reboots. This EventStore is mainly used for testing purposes and it is
+ * strongly recommended to use a durable store for production scenarios.
+ *
  * @author Tommy Wassgren
  */
 public class InMemoryEventStore implements EventStore {

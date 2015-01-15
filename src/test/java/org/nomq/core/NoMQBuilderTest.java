@@ -18,16 +18,13 @@ package org.nomq.core;
 
 import com.hazelcast.core.Hazelcast;
 import org.junit.Test;
-import org.nomq.store.journalio.JournalEventStore;
+import org.nomq.core.support.InMemoryEventStore;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.assertEquals;
 
@@ -40,21 +37,13 @@ public class NoMQBuilderTest {
     @Test
     public void testAdvancedSetup() throws Exception {
         // Given
-        final Path recordFolder = Files.createTempDirectory("org.nomq.test");
-        final JournalEventStore recordEventStore = new JournalEventStore(recordFolder.toString());
-
-        final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
-        final JournalEventStore playbackEventStore = new JournalEventStore(playbackFolder.toString());
-
-        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(3);
-
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final List<Event> result = new ArrayList<>();
         final NoMQ noMQ = NoMQBuilder.builder()
-                .playback(playbackEventStore)
-                .record(recordEventStore)
+                .playback(new InMemoryEventStore())
+                .record(new InMemoryEventStore())
                 .playbackQueue(new LinkedBlockingQueue<>())
-                .executorService(executorService)
+                .executorService(Executors.newScheduledThreadPool(3))
                 .topic("testTopic")
                 .syncAttempts(4)
                 .syncTimeout(6000)
@@ -81,9 +70,6 @@ public class NoMQBuilderTest {
     @Test
     public void testSetupWithMultipleSubscribers() throws Exception {
         // Given
-        final Path recordFolder = Files.createTempDirectory("org.nomq.test");
-        final Path playbackFolder = Files.createTempDirectory("org.nomq.test");
-
         final List<Event> result1 = new ArrayList<>();
         final List<Event> result2 = new ArrayList<>();
         final CountDownLatch countDownLatch = new CountDownLatch(1);

@@ -25,7 +25,9 @@ import org.nomq.core.impl.AsyncEventPublisher;
 import org.nomq.core.impl.EventPlayer;
 import org.nomq.core.impl.EventRecorder;
 import org.nomq.core.impl.NoMQImpl;
-import org.nomq.core.store.mem.InMemoryEventStore;
+import org.nomq.core.support.InMemoryEventStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,9 +44,11 @@ import java.util.function.Function;
  *
  * <p>The following components can be specified:
  *
- * <strong>Record event store</strong>: This component defines where inbound events should be stored.
+ * <strong>Record event store</strong>: This component defines where inbound events should be stored. The default recording
+ * store is a simple in-memory version and does not support durable events.
  *
- * <strong>Playback event store</strong>: Contains the events that have been dispatched to this application.
+ * <strong>Playback event store</strong>: Contains the events that have been dispatched to this application. The default
+ * playback store is a simple in-memory version and does not support durable events.
  *
  * <strong>Hazelcast</strong>: Various ways of configuring the Hazelcast cluster either via configuration or via a {@link
  * HazelcastInstance}
@@ -80,17 +84,13 @@ import java.util.function.Function;
  * @author Tommy Wassgren
  */
 public final class NoMQBuilder {
-    public static final String DEFAULT_RECORD_FOLDER = System.getProperty("user.home") + "/.nomq/record";
-    public static final String DEFAULT_PLAYBACK_FOLDER = System.getProperty("user.home") + "/.nomq/playback";
     public static final String DEFAULT_TOPIC = "NoMQ";
-
     public static final long DEFAULT_SYNC_TIMEOUT = 5000;
     public static final int DEFAULT_SYNC_ATTEMPTS = 3;
-
-
     private final Collection<Consumer<Event>> eventSubscribers = new ArrayList<>();
     private ScheduledExecutorService executorService;
     private HazelcastInstance hz;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private int maxSyncAttempts;
     private EventStore playbackEventStore;
     private BlockingQueue<Event> playbackQueue;
@@ -310,6 +310,9 @@ public final class NoMQBuilder {
 
     private EventStore playback() {
         if (playbackEventStore == null) {
+            logger.warn("The default EventStore for playbacks is being used. " +
+                    "This is a non-durable EventStore so events may disappear when the instance is rebooted. " +
+                    "It is strongly recommended that you use a durable event store.");
             playbackEventStore = createDefaultStore();
         }
 
@@ -326,6 +329,10 @@ public final class NoMQBuilder {
 
     private EventStore record() {
         if (recordEventStore == null) {
+            logger.warn("The default EventStore for recording is being used. " +
+                    "This is a non-durable EventStore so events may disappear when the instance is rebooted. " +
+                    "It is strongly recommended that you use a durable event store.");
+
             recordEventStore = createDefaultStore();
         }
         return recordEventStore;

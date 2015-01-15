@@ -18,6 +18,7 @@ package org.nomq.core.store.mem;
 
 import org.nomq.core.EventStore;
 import org.nomq.core.store.AbstractEventStoreTest;
+import org.nomq.core.support.InMemoryEventStore;
 
 /**
  *
