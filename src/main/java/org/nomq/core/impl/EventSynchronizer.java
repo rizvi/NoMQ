@@ -199,9 +199,8 @@ class EventSynchronizer {
 
         // Publish a "sync" event on the real event queue. This id will be used later as a check to see that NoMQ has
         // been completely synced.
-        final String syncRequestId = eventPublisher
-                .publishAndWait(generateSyncEvent())
-                .id();
+        final String syncRequestId =
+                eventPublisher.publishAndWait(generateSyncEvent()).id();
 
         // Publish the sync request
         publishSyncRequest(syncRequestId);
